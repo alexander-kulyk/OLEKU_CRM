@@ -11,5 +11,9 @@
     "dev:server": "pnpm --filter server dev",
     "build:client": "pnpm --filter client build",
     "build:server": "pnpm --filter server build"
+  },
+  "dependencies": {
+    "@mui/x-date-pickers": "^9.10.1",
+    "zustand": "^5.0.14"
   }
 }
