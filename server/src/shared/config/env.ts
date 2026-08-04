@@ -1,24 +1,23 @@
-import dotenv from 'dotenv'
+import dotenv from 'dotenv';
 
-dotenv.config({ quiet: true })
+dotenv.config({ quiet: true });
 
-function required(name: string): string {
-  const value = process.env[name]
+export function requiredEnv(name: string): string {
+  const value = process.env[name];
 
   if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`)
+    throw new Error(`Missing required environment variable: ${name}`);
   }
 
-  return value
+  return value;
 }
 
-const nodeEnv = process.env.NODE_ENV ?? 'development'
+const nodeEnv = process.env.NODE_ENV ?? 'development';
 
 export const env = {
   nodeEnv,
   isProduction: nodeEnv === 'production',
   port: Number(process.env.PORT ?? 3000),
-  databaseUrl: required('DATABASE_URL'),
-  mongoUri: required('MONGODB_URI'),
+  mongoUri: requiredEnv('DB_HOST'),
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
-}
+};
