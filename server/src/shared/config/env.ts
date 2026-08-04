@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config({ quiet: true });
 
-export function requiredEnv(name: string): string {
+function requiredEnv(name: string): string {
   const value = process.env[name];
 
   if (!value) {
