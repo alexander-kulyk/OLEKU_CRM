@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "allow": [
+      "Bash(pnpm build:client)",
+      "Bash(pnpm build:server)",
+      "Bash(pnpm --filter client build)",
+      "Bash(pnpm --filter server build)"
+    ],
+    "deny": [
+      "Read(/.env)",
+      "Read(/**/.env)",
+      "Bash(rm -rf /)",
+      "Bash(sudo *)",
+      "Bash(chmod 777 *)",
+      "Bash(wget *)",
+      "Bash(nc *)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync *)",
+      "Bash(chmod *)",
+      "Bash(chown *)",
+      "Bash(dd *)",
+      "Bash(mkfs *)",
+      "Bash(mount *)",
+      "Bash(export *)"
+    ]
+  }
+}
