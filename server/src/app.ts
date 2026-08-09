@@ -1,8 +1,10 @@
-import express, { type ErrorRequestHandler } from 'express'
+import express from 'express'
 import helmet from 'helmet'
 import cors from 'cors'
 import morgan from 'morgan'
 import { env } from './shared/config/env.ts'
+import { notFoundHandler } from './shared/http/not-found-handler.ts'
+import { errorMiddleware } from './shared/http/error-middleware.ts'
 
 export function createApp() {
   const app = express()
@@ -17,28 +19,11 @@ export function createApp() {
     res.json({ status: 'ok' })
   })
 
-  app.use((req, res) => {
-    res.status(404).json({
-      error: 'Not Found',
-      message: `Route ${req.originalUrl} not found`,
-    })
-  })
-
-  const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
-    console.error('Server error:', error)
-
-    const status = typeof error.status === 'number' ? error.status : 500
-    const message = error instanceof Error ? error.message : 'Internal Server Error'
-
-    res.status(status).json({
-      success: false,
-      error: message,
-      timestamp: new Date().toISOString(),
-      ...(env.isProduction || !(error instanceof Error) ? {} : { stack: error.stack }),
-    })
-  }
-
-  app.use(errorHandler)
+  // Both terminal handlers stay last: mount every feature router above
+  // this point (see specs/api-foundation/spec.md, "Defined routes precede
+  // terminal handlers").
+  app.use(notFoundHandler)
+  app.use(errorMiddleware)
 
   return app
 }

@@ -27,12 +27,12 @@
 
 ## 2. Replace the shared HTTP terminal behavior
 
-- [ ] 2.1 Add the shared error-envelope type and a typed HTTP error carrying a status, one of the specified stable error codes, and a safe public message.
-- [ ] 2.2 Add a Zod boundary helper that parses supplied params, query, or body, returns the parsed value, and never assigns to `req.query` or another Express request property.
-- [ ] 2.3 Add one error middleware that maps validation and typed domain errors to `{ error: { code, message } }`, logs the underlying failure server-side, and maps every unknown failure to a generic `INTERNAL_ERROR` response.
-- [ ] 2.4 Add a terminal not-found handler that returns the exact `NOT_FOUND` envelope without reflecting `req.originalUrl`.
-- [ ] 2.5 Replace the inline terminal handlers in `src/app.ts`, preserve `GET /api/health` as `{ status: "ok" }`, and keep both terminal handlers last.
-- [ ] 2.6 Add integration tests for health, unknown routes, Zod validation failure, typed failures, and a synthetic internal failure containing a stack, URL, raw exception message, and MongoDB-like driver text.
+- [x] 2.1 Add the shared error-envelope type and a typed HTTP error carrying a status, one of the specified stable error codes, and a safe public message.
+- [x] 2.2 Add a Zod boundary helper that parses supplied params, query, or body, returns the parsed value, and never assigns to `req.query` or another Express request property.
+- [x] 2.3 Add one error middleware that maps validation and typed domain errors to `{ error: { code, message } }`, logs the underlying failure server-side, and maps every unknown failure to a generic `INTERNAL_ERROR` response.
+- [x] 2.4 Add a terminal not-found handler that returns the exact `NOT_FOUND` envelope without reflecting `req.originalUrl`.
+- [x] 2.5 Replace the inline terminal handlers in `src/app.ts`, preserve `GET /api/health` as `{ status: "ok" }`, and keep both terminal handlers last.
+- [x] 2.6 Add integration tests for health, unknown routes, Zod validation failure, typed failures, and a synthetic internal failure containing a stack, URL, raw exception message, and MongoDB-like driver text.
 
 **Depends on:** Stage 1
 
