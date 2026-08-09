@@ -1,106 +1,115 @@
 ## Purpose
 
-Defines read access to the people who can take part in an event — contacts as attendees and employees as hosts — so the event form's selectors have a searchable, bounded source of candidates. It covers reading only; creating and managing people belongs to a later capability.
+Defines the read-only contact and employee directory used by the event attendee and host selectors, including exact routes, payloads, filters, search semantics, ordering, and bounds.
 
 ## ADDED Requirements
 
-### Requirement: Contact directory read
+### Requirement: Contacts are read from the contact directory
 
-The system SHALL expose a read that returns contacts for the attendee selector. Each returned person MUST carry a stable identifier, both name parts, and an email address.
+`GET /api/contacts` SHALL return `{ "contacts": [...] }`. Each contact SHALL carry `id`, `firstName`, `lastName`, `fullName`, `email`, and `status`, and SHALL NOT expose persistence metadata.
 
 #### Scenario: Listing contacts
 
-- **WHEN** a client requests the contact list without filters
-- **THEN** the response contains contacts with identifier, first name, last name, email, and status
-- **AND** the response status is 200
+- **WHEN** a client requests `GET /api/contacts`
+- **THEN** the response status is 200
+- **AND** the body contains the named `contacts` array
+- **AND** every contact has only the declared public fields
 
-### Requirement: Employee directory read
+### Requirement: Employees are read from the employee directory
 
-The system SHALL expose a read that returns employees for the host selector, carrying the same person fields as contacts plus position, department, and whether the employee may host events.
+`GET /api/employees` SHALL return `{ "employees": [...] }`. Each employee SHALL carry the contact fields plus `position`, `department`, and `canHostEvents`, and SHALL NOT expose persistence metadata.
 
 #### Scenario: Listing employees
 
-- **WHEN** a client requests the employee list without filters
-- **THEN** the response contains employees with identifier, first name, last name, email, position, department, host eligibility, and status
+- **WHEN** a client requests `GET /api/employees`
+- **THEN** the response status is 200
+- **AND** the body contains the named `employees` array
+- **AND** every employee has only the declared public fields
 
-### Requirement: Host eligibility filtering
+### Requirement: Status is a closed lifecycle filter
 
-The employee read SHALL support restricting results to employees eligible to host events, so the host selector can offer only assignable people.
+Contact and employee status SHALL be either `active` or `inactive`, defaulting to `active` when absent in storage. Both directory endpoints SHALL accept the optional `status=active|inactive` query parameter and SHALL return active people by default. Any other status value SHALL be rejected with status 400.
 
-#### Scenario: Requesting eligible hosts only
+#### Scenario: Default read excludes inactive people
 
-- **WHEN** a client requests employees restricted to those eligible to host
-- **THEN** every returned employee is marked as able to host events
-- **AND** employees not marked as able to host are absent
+- **WHEN** a directory endpoint is requested without `status`
+- **THEN** only active people are returned
+
+#### Scenario: Explicit inactive read
+
+- **WHEN** a directory endpoint is requested with `status=inactive`
+- **THEN** only inactive people are returned
+
+#### Scenario: Unknown status value
+
+- **WHEN** a directory endpoint is requested with a status other than `active` or `inactive`
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
+
+### Requirement: Employee reads support host eligibility
+
+`GET /api/employees` SHALL accept the optional `canHostEvents=true|false` query parameter. The filter SHALL apply only to employees; supplying it to `GET /api/contacts` SHALL be rejected with status 400.
+
+#### Scenario: Eligible hosts only
+
+- **WHEN** employees are requested with `canHostEvents=true`
+- **THEN** every returned employee is active unless another status was explicitly requested
+- **AND** every returned employee has `canHostEvents` equal to true
 
 #### Scenario: Eligibility filter absent
 
-- **WHEN** a client requests employees without the eligibility restriction
-- **THEN** employees are returned regardless of host eligibility
-- **AND** each carries its host eligibility so the caller can distinguish them
+- **WHEN** employees are requested without `canHostEvents`
+- **THEN** both eligible and ineligible employees may be returned
 
-### Requirement: Active people only by default
+#### Scenario: Eligibility filter on contacts
 
-Directory reads SHALL return only people with active status unless the caller explicitly asks for other statuses, so selectors do not offer people who are no longer assignable.
+- **WHEN** contacts are requested with `canHostEvents`
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
 
-#### Scenario: Inactive person excluded by default
+### Requirement: Name search is literal and bounded
 
-- **WHEN** a client requests a directory list without specifying a status
-- **AND** a stored person has a status other than active
-- **THEN** that person is absent from the response
+Both directory endpoints SHALL accept the optional `search` query parameter. It SHALL match case-insensitively when its literal text occurs in either name part. Pattern metacharacters SHALL have no special meaning. A search term longer than 100 characters SHALL be rejected with status 400.
 
-#### Scenario: Explicitly requesting inactive people
+#### Scenario: Search matches either name part
 
-- **WHEN** a client requests a directory list explicitly including non-active people
-- **THEN** people of the requested statuses are returned
-- **AND** each carries its status
-
-### Requirement: Name search treated as literal text
-
-Directory reads SHALL support a search term matched case-insensitively against either name part. The term MUST be treated as literal text rather than as a pattern, and its length MUST be bounded, so that a caller cannot alter match semantics or force pathological matching.
-
-#### Scenario: Matching either name part
-
-- **WHEN** a client searches with a term that appears in a person's first name or last name in any letter case
-- **THEN** that person is returned
+- **WHEN** `search` occurs in a person's first or last name using any letter case
+- **THEN** that person is included in the response if the other filters also match
 
 #### Scenario: Pattern characters are literal
 
-- **WHEN** a search term contains regular-expression or wildcard characters
-- **THEN** results match only people whose name contains those characters literally
+- **WHEN** `search` contains regular-expression or wildcard metacharacters
+- **THEN** only names containing those literal characters match
 - **AND** the request does not fail
 
-#### Scenario: Over-long search term rejected
+#### Scenario: Search term is too long
 
-- **WHEN** a search term exceeds the permitted length
-- **THEN** the response status is 400
-- **AND** no unbounded scan is performed
+- **WHEN** `search` contains more than 100 characters
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
 
-### Requirement: Bounded and deterministic results
+### Requirement: Directory results are deterministic and capped
 
-Directory reads SHALL return a bounded number of records with a stable ordering, so a selector never receives an unbounded list and repeated identical requests return results in the same order.
+Both directory endpoints SHALL sort by `lastName`, then `firstName`, then `id`, and SHALL return at most 50 people. The API SHALL expose no caller-controlled result-size parameter.
 
-#### Scenario: Result count is capped
+#### Scenario: Stable ordering
 
-- **WHEN** more people match a directory read than the permitted maximum
-- **THEN** at most the permitted maximum is returned
+- **WHEN** the same directory request is repeated against unchanged data
+- **THEN** the same people are returned in the same order
 
-#### Scenario: Caller-requested size is bounded
+#### Scenario: More than fifty people match
 
-- **WHEN** a client requests more records than the permitted maximum
-- **THEN** the response contains at most the permitted maximum
-- **AND** the request does not fail
+- **WHEN** more than 50 people match a directory request
+- **THEN** exactly the first 50 in the declared ordering are returned
 
-#### Scenario: Ordering is stable
+#### Scenario: Caller attempts to set a result size
 
-- **WHEN** the same directory read is issued twice against unchanged data
-- **THEN** both responses list people in the same order
+- **WHEN** a caller supplies an undeclared result-size query parameter
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
 
-### Requirement: Directory reads are read-only
+### Requirement: The directory is read-only
 
-This capability SHALL expose no operation that creates, modifies, or deletes a contact or an employee.
+This capability SHALL expose no route that creates, modifies, or deletes a contact or employee.
 
-#### Scenario: Write attempt against the directory
+#### Scenario: Write attempt against a directory route
 
-- **WHEN** a client attempts a write operation against a directory path
-- **THEN** no person record is created, modified, or deleted
+- **WHEN** a client sends POST, PATCH, PUT, or DELETE to a contact or employee directory path
+- **THEN** the response status is 404 with `NOT_FOUND`
+- **AND** no person is created, modified, or deleted

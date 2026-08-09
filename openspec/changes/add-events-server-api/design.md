@@ -1,130 +1,134 @@
 ## Context
 
-See proposal.md — Why. The starting point is five files: `main.ts` → `server.ts` → `app.ts`, plus `shared/config/env.ts` and `shared/infra/mongoose/client.ts`. `createApp()` registers middleware, `GET /api/health`, a catch-all 404 that reflects `req.originalUrl`, and an inline error handler that returns `error.message` in every environment and `error.stack` outside production. There are no modules, models, or routers.
+See proposal.md — Why. The server currently contains `main.ts → server.ts → app.ts`, configuration, and one Mongoose connection. `createApp()` registers middleware, `GET /api/health`, a catch-all 404 that reflects `req.originalUrl`, and an inline error handler that exposes raw error text and a development stack. No feature module, model, router, validation layer, or test harness exists.
 
-Constraints this design must work inside (research.md F-015, F-017, EVID-006, EVID-007):
+Constraints from research.md F-015 to F-019 and the repository instructions:
 
-- TypeScript runs natively on Node 24, so **relative imports carry `.ts`** and only erasable TypeScript is legal — no `enum`, no parameter properties, no namespaces.
-- `strict`, `noUnusedLocals`, `noUnusedParameters` are on.
-- Feature code lives in `src/modules/<feature>/`, mounted under `/api` **above** the 404 and error handler, which stay last.
-- `process.env` is read only in `env.ts`.
-- Dependencies are installed from the repo root with pnpm and the lockfile committed.
-- `contacts` and `employees` hold people; `users` is the authentication surface and gets no domain data.
-- `pnpm --filter server build` is the gate that exists today; this change adds `pnpm --filter server test`.
+- Relative imports carry `.ts`; Node 24 executes only erasable TypeScript.
+- Feature code lives under `src/modules/<feature>/`; routers mount under `/api` above the terminal handlers.
+- Environment variables are read only in `src/shared/config/env.ts`.
+- Zod validates at the HTTP boundary.
+- `contacts` and `employees` are domain people collections; `users` is authentication-only.
+- Dependencies are added through pnpm from the root with the lockfile committed.
+- `pnpm --filter server build` remains required; this change adds a test gate.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- One request shape every later feature copies: routes → controller → service → model, with validation at the boundary and a single error envelope.
-- A wire contract that survives the two silent-failure modes of the calendar library rather than depending on the client to avoid them.
-- Invariants enforced on the write path that is actually used, not on a path the code does not take.
-- A verification gate that can prove the two traps research identified are closed.
+- One explicit contract from route through response mapper.
+- Partial updates that preserve omitted data and enforce whole-event invariants.
+- Participant rules that reject invalid new assignments without invalidating historical ones.
+- Tests structurally incapable of connecting to Atlas.
+- Executable Stage gates with no planning-artifact edits or executor-owned commits.
 
 **Non-Goals:**
 
-- Any client code, including the FullCalendar mapping (documented here for the client change to consume, not implemented).
-- Authentication, authorization, and anything that would give the actor fields a real value.
-- Pagination beyond a bounded result cap, sorting options, or filtering the directory by anything other than status, host eligibility, and name search.
-- Reconciling the two overlapping changes — proposal.md records deliberate coexistence.
+- Client code or the FullCalendar mapping itself.
+- Authentication, authorization, idempotency keys, optimistic concurrency, recurrence, or product-level time-zone policy.
+- Pagination or a caller-selected directory page size.
+- Editing or archiving the superseded changes as part of implementation; proposal.md defines their status.
 
 ## Decisions
 
-### D1. Wire contract is domain-shaped; the client maps to FullCalendar
+### D1. Exact routes and response mappers implement the domain contract
 
-Endpoints return `{ id, title, startAt, endAt, attendees[], hosts[] }`. The client maps `title → title`, `startAt → start`, `endAt → end`, and participants into `extendedProps`.
+The routes are:
 
-*Why:* FullCalendar absorbs **any unrecognized top-level key into `extendedProps` without error** (research.md F-003). If the server emitted FullCalendar's own shape, a server-side typo would render an untitled event with no failure signal anywhere in the stack. Keeping the library's vocabulary out of the contract turns that class of mistake into a local client-side mapping bug.
+- `GET /api/events?from&to` → `{ events: [...] }`
+- `POST /api/events` → event, status 201
+- `PATCH /api/events/:id` → event, status 200
+- `DELETE /api/events/:id` → status 204, no body
+- `GET /api/contacts` → `{ contacts: [...] }`
+- `GET /api/employees` → `{ employees: [...] }`
 
-*Alternative considered:* emit `{ title, start, end, extendedProps }` so the client can pass the array straight to the `events` prop. Rejected — it saves one small mapping function and permanently binds the API to a rendering library's naming.
+An event mapper emits only `{ id, title, startAt, endAt, attendees, hosts }`; a directory mapper emits only the projections declared in the specs. Mappers convert ObjectIds to strings and dates to ISO strings. They never serialize audit or persistence metadata.
 
-*Mapping note for the client change:* `end` is exclusive in FullCalendar's range model, but for a **timed** event the exclusive end and the real end instant coincide, so no adjustment is needed (research.md F-007). The classic off-by-one-day correction applies only to all-day events, which are deferred by the PRD.
+*Alternative considered:* return FullCalendar's native `{ start, end, extendedProps }` shape. Rejected because FullCalendar silently turns unrecognized keys into `extendedProps` (research.md F-003), hiding a server-side typo rather than exposing a contract mismatch.
 
-### D2. Instant parsing accepts a numeric offset, everywhere
+### D2. Boundary validation returns parsed values and never mutates Express requests
 
-Every instant crossing the boundary is parsed with an ISO datetime validator configured to accept an offset, not the default `Z`-only form.
+`validate.ts` parses a supplied Zod schema against `req.params`, `req.query`, or `req.body` and returns the parsed value to the route/controller. It does not assign parsed values back to `req.query`; Express 5 exposes query as a getter. Controllers and services receive only the returned parsed data.
 
-*Why:* FullCalendar formats range parameters with `formatIso`, which substitutes `+HH:MM` for `Z` whenever the browser's local offset is non-zero, while Zod 4's `datetime()` accepts only `Z` unless `{ offset: true }` is passed (research.md F-005). The abandoned attempt under `server/dist/` used the default form — it would have rejected every request from a non-UTC browser and presented as an **empty calendar**, not an error. This is the single highest-value correction in the change, and it is invisible to anyone developing in UTC.
+The list schemas declare exact query names. Directory queries accept `search`, `status`, and — for employees only — `canHostEvents`; there is no `size` or `limit`. Event writes accept only their editable domain fields. Zod's stripping behavior makes supplied audit fields inert, after which the service explicitly writes both audit fields as null.
 
-Instants are stored as UTC `Date` values and serialized back as ISO strings with a `Z` designator and a time component, which keeps the calendar from inferring an all-day event (research.md F-004).
+### D3. Instants accept offsets and are stored as absolute UTC dates
 
-### D3. Writes go through a document round-trip, not a bare query update
+All request instants use `z.iso.datetime({ offset: true })`, then convert to `Date`. Zone-less and date-only values are rejected. Responses use `toISOString()`, producing a time-bearing UTC value.
 
-Create is `new Model(...).save()`. Update is *load → assign → save*. Delete is a direct query.
+*Why:* FullCalendar emits numeric offsets outside UTC while Zod's default ISO parser accepts only `Z` (research.md F-005). Absolute instants are the explicit v1 storage policy. A later business-local/per-event zone decision adds zone data; it does not silently reinterpret stored instants.
 
-*Why:* Mongoose's `validate` is document middleware and does not fire on `findOneAndUpdate`/`updateOne`, and `runValidators` defaults to `false` on query updates (research.md F-009, EVID-017, EVID-018). An invariant written once as a schema validator would hold on create and silently vanish on update. The load-then-save path makes one enforcement site cover both, and the 404-on-missing behavior falls out of the load.
+### D4. PATCH is load, merge supplied fields, validate, save
 
-*Cost:* two round-trips per update and a lost-update window between load and save. Accepted — the Event dialog is single-user-per-event in practice and the PRD defines no concurrency rule.
+Create constructs a document and calls `save()`. PATCH loads the document, assigns only fields present in the validated body, validates the merged event, then calls `save()`. An omitted participant array is untouched; an empty one replaces the stored set with empty.
 
-*Alternative considered:* `findOneAndUpdate` with `runValidators: true` and `context: 'query'`. Rejected — it makes correctness depend on options that are easy to omit on the next endpoint, and update validators do not run schema-level cross-field checks the way document validation does.
+*Why:* document validation does not run on bare query updates and update validators default to off (research.md F-009). The document round-trip makes the persistence backstop run on both create and update and lets a one-sided boundary update be checked against the stored other boundary.
 
-### D4. The span invariant is checked in the service, before persistence
+*Trade-off:* two database round-trips and last-write-wins under concurrent edits. Accepted until a future concurrency requirement introduces optimistic versioning.
 
-`endAt > startAt` is asserted in the service for both create and update, in addition to being expressed on the schema.
+### D5. One shared service function owns the primary span check
 
-*Why:* it must hold on every write path (spec: *End must be strictly later than start*), and the service is the one place both paths pass through. The schema-level expression is defense in depth, not the primary guard — D3 explains why a schema-only guard is not sufficient on its own.
+A single service function evaluates `endAt > startAt` and is called with the full candidate state by both create and PATCH. The event schema also has a document validation hook as defense in depth. These are intentionally two layers: one shared domain check with a stable HTTP error, plus one persistence backstop.
 
-### D5. Participant validation is one resolve-and-check step
+### D6. Participant validation distinguishes new from retained assignments
 
-The service resolves all attendee ids against `contacts` and all host ids against `employees` in two queries, then checks: every id resolved, every person is active, every host has `canHostEvents`. Duplicates are collapsed before resolution.
+Participant arrays are de-duplicated before validation. Create treats every submitted id as new. PATCH compares each supplied replacement set with the stored set:
 
-*Why:* it satisfies four spec requirements (existence, eligibility, status, role separation) with a fixed two-query cost regardless of participant count, and it produces one clear rejection instead of a partial write. Role separation — contacts may not be hosts and employees may not be attendees — falls out of querying the two collections separately.
+- ids in `submitted − stored` are new and must exist, be active, and — for hosts — be eligible;
+- ids in `submitted ∩ stored` are retained and may remain after status or eligibility changes;
+- ids in `stored − submitted` are removed;
+- an omitted array skips validation and leaves that role unchanged.
 
-*Eligibility is enforced here rather than only filtered in the directory read* (decision D-003 in research.md): a `canHostEvents` flag that only shapes a dropdown is not a rule, and the directory endpoints are not the only way to reach the write path.
+Contacts resolve attendees and employees resolve hosts, so querying the role-specific collection enforces role separation. Validation performs at most one batched query per supplied role and completes before mutating the loaded event, preserving atomic failure.
 
-### D6. Module layout
+Reads batch-resolve participant ids across the result set with explicit projections. Missing references are omitted from the response rather than failing the event or the whole period.
 
-```
-src/modules/events/      event.model.ts  event.routes.ts  event.controller.ts  event.service.ts  event.schema.ts
-src/modules/directory/   contact.model.ts  employee.model.ts  directory.routes.ts
-                         directory.controller.ts  directory.service.ts  directory.schema.ts
-src/shared/http/         error-envelope.ts  http-error.ts  validate.ts  error-handler.ts  not-found.ts
-src/shared/db/seed.ts
-```
+### D7. Directory behavior uses fixed constants and total ordering
 
-`server/CLAUDE.md:13` describes a module as model/routes/service. The request asks for controllers, so `<feature>.controller.ts` is added between routes and service: routes wire paths and validation, controllers translate HTTP to service calls and back, services own the rules. Contacts and employees share one `directory` module because they share every read behavior and differ only in fields.
+Search escapes pattern metacharacters before a case-insensitive match against `firstName` or `lastName`. The search limit is 100 characters. Responses are capped at 50 and ordered by `{ lastName: 1, firstName: 1, _id: 1 }`; `_id` provides a total tiebreaker. No caller-controlled size parameter is accepted.
 
-### D7. Error handling relies on Express 5's promise forwarding
+Contacts and employees use the closed `active | inactive` status, defaulting to active. `canHostEvents` exists only on employees and defaults to false.
 
-Controllers are `async` and throw; no `try`/`catch` per handler and no async-wrapper dependency. Express 5.2.1's router forwards a rejected returned promise to `next(error)` (research.md F-008, EVID-019).
+### D8. Models bind explicitly and declare only safe indexes
 
-The centralized handler maps a typed `HttpError` to its status and code, a validation failure to 400, and anything else to a generic 500. It logs the real error server-side and **never** puts a message, stack, or driver text into the response (research.md R-011). The existing 404 is replaced with one that emits the envelope without reflecting `req.originalUrl`.
+Models bind explicitly to `contacts`, `employees`, and `events` rather than relying on pluralization. Events declare `{ startAt: 1, endAt: 1 }`; directory collections declare `{ status: 1, lastName: 1, firstName: 1, _id: 1 }`. No unique email index is created before U-001 establishes whether duplicate values already exist. `users` gets no model.
 
-*This replaces existing behavior rather than extending it* — the current handler's `{ success, error, timestamp, stack }` shape is not preserved. Nothing consumes it: the client calls no API (research.md EVID-020).
+### D9. Express 5 forwards controller failures to one error handler
 
-### D8. Query shape and indexes
+Controllers are async and throw typed errors. Express 5 forwards rejected promises to the error middleware, so no wrapper or per-controller `try/catch` is added (research.md F-008).
 
-The calendar read is `startAt < to AND endAt > from`, backed by a compound index on `{ startAt, endAt }`. Directory reads are backed by an index supporting the status filter and name sort. Search is a case-insensitive match on either name part with the term **escaped as literal text** and length-capped before it reaches the query, which closes both the wrong-match and the pathological-backtracking risks (research.md R-009).
+The handler emits the exact envelope and maps `VALIDATION_ERROR`, `INVALID_PARTICIPANT`, `NOT_FOUND`, and `INTERNAL_ERROR` to the statuses in `api-foundation`. It logs the underlying error but returns only a safe message. The not-found handler never includes `req.originalUrl`; both terminal handlers remain last.
 
-The result cap is enforced server-side: a caller asking for more than the maximum gets the maximum, not an error.
+### D10. Tests replace DB_HOST before importing application modules
 
-### D9. Dangling participants are dropped on read, not repaired
+The `node:test` setup starts `mongodb-memory-server`, assigns its URI to `process.env.DB_HOST`, and only then dynamically imports `app.ts`, models, or any module that reaches `env.ts`. Existing `.env` contents cannot override the already assigned value. Tests never import application modules statically ahead of this setup and never derive a URI from `server/.env`.
 
-When a stored participant id no longer resolves, the event is returned with that participant omitted (research.md R-010).
+Feature stages add their integration tests alongside implementation; the final Stage runs the complete suite. Tests cover offset-bearing periods, the actual update enforcement path, participant transitions, literal search, boundary overlap, dangling references, audit suppression, and error leakage.
 
-*Why:* the alternative — failing the read — lets one deleted person make an entire calendar period unreadable. No delete path for people exists in this change, so this is a guard against a future one rather than a live condition.
+### D11. The seed is explicit, idempotent, and local-only
 
-### D10. Tests are `node:test` with `mongodb-memory-server`
+The seed upserts a fixed directory dataset by email, never runs at application startup, and touches neither `events` nor `users`. It refuses a non-loopback MongoDB host, preventing accidental execution against Atlas. Tests invoke the seed with the in-memory URI and verify identical contents after two runs.
 
-A `test` script runs `node --test` against an in-memory MongoDB. Both packages are added properly to `server/package.json`; `mongodb-memory-server` is currently phantom-linked into `server/node_modules` and absent from the lockfile, as is `zod` (research.md F-019, R-006).
+### D12. U-001 is a manual precondition, not a planning edit
 
-*Why a real database rather than mocks:* the two most valuable checks — that an offset-bearing range parameter selects the right events, and that the span invariant survives an update — are both about how a query and a write actually behave. Mocking the layer under test would verify nothing.
+Before Stage 1 can pass, the user or authorized database owner provides the collection names, counts, and one redacted sample from each non-empty collection. The verifier records that observation in its Stage report. Neither executor nor verifier reads credentials or modifies `research.md`, `proposal.md`, `design.md`, specs, or task text. Documents using `name` / `startsAt` / `endsAt` block implementation for a migration decision.
 
 ## Risks / Trade-offs
 
-- **[The database's real contents are unverified — research.md U-001, R-007]** → No design decision here assumes empty collections. Before the first write, the actual collection names, document counts, and a sample document must be confirmed by someone who can read `server/.env`; the credential is denied to tooling by project settings. If documents exist under the older `name` / `startsAt` / `endsAt` naming, the models in this design will read them as untitled events with no times, and the plan needs revisiting before, not after, a write.
-- **[`status` semantics are an unconfirmed assumption — research.md A-002]** → Read as an active/inactive lifecycle, with non-active people unassignable. D5 gives that assumption teeth by enforcing it on write, so if the intended values differ, D5's checks change with them. Carried forward as an assumption, not a fact.
-- **[No authentication on endpoints that write to a hosted cluster — research.md R-002]** → Accepted debt; roles are out of PRD scope. It constrains deployment: this API must not be exposed beyond local development until an authorization change lands. The actor fields are declared and always null (proposal decision D-004) so the audit trail is empty rather than forged.
-- **[Three tracked changes describe this same surface under conflicting field names — research.md R-003]** → Deliberate, per decision D-001. Two consequences ride along: whoever implements from `add-events-page` ships `name`/`startsAt`/`endsAt` instead of this contract, and all three changes declare the same new capability paths, so archiving more than one will require a manual spec reconciliation. Only one of the three should be implemented and archived.
-- **[Load-then-save loses a concurrent update — D3]** → Accepted. The window is small, the PRD defines no concurrency rule, and the alternative costs the invariant guarantee. Revisit if multi-user editing of one event becomes real.
-- **[Duplicate submission can create two events — research.md R-013]** → Not solved server-side. The PRD addresses it only as a client-side loading state (§15). No idempotency key is introduced; a retried create makes a second event.
-- **[Time-zone policy is deferred by the PRD §18]** → Instants are stored as absolute moments. That is correct for "this specific moment" and wrong for "4pm wherever the user is". The storage semantics are stated explicitly (D2) so the eventual ruling can be applied deliberately rather than discovered.
+- **[U-001: runtime collection state is unknown]** → D12 blocks writes until an authorized observation confirms the model assumptions.
+- **[Unauthenticated hosted-database access]** → Endpoints remain local-development-only until authorization exists.
+- **[Superseded changes remain visible]** → Proposal.md is authoritative; only this change may be implemented or archived for the server surface. Future cleanup archives or removes the obsolete planning changes separately.
+- **[Load-merge-save is last-write-wins]** → Accepted for the current single-editor behavior; optimistic concurrency is the documented upgrade.
+- **[Historical inactive/ineligible assignments remain]** → Deliberate for editability and audit continuity; directory selectors exclude them from new choices.
+- **[Future time-zone policy may require additional fields]** → Stored instants are explicitly absolute in v1, avoiding accidental server-local interpretation.
+- **[`mongodb-memory-server` may need a first-run binary download]** → The suite stops rather than falling back to Atlas; a disposable local MongoDB is the only permitted fallback.
 
 ## Migration Plan
 
-No data migration is planned, and none can be planned until U-001 is resolved. Deployment is additive: new routers mount above the existing terminal handlers, and the only replaced behavior is the 404 and error handler pair, which has no consumer. Rollback is reverting the change — the indexes it declares are the only durable side effect, and dropping them affects nothing else.
+1. Satisfy D12 with a read-only database observation; stop on incompatible existing documents.
+2. Declare dependencies and the isolated test bootstrap.
+3. Replace the shared terminal HTTP behavior and preserve health.
+4. Add directory and event persistence, endpoints, and their integration tests.
+5. Run build, complete tests, and the local-only seed test before exposing routes outside the test environment.
 
-## Open Questions
-
-- Whether the result cap and the maximum search-term length should be configurable per endpoint or fixed constants. Fixed constants are assumed; making them configurable later changes no observable behavior at the cap's current value.
-- Whether the seed should cover events as well as people. Assumed no — the calendar can be exercised by creating events through the API, while the selectors cannot be exercised against empty collections at all.
+Rollback unmounts the feature routers and restores the prior terminal handlers. Source and dependency changes are reverted through Git and pnpm. Seed tests leave only the disposable in-memory database; no rollback operation targets Atlas. Declared indexes may be dropped only from a database on which this change created them and only after the exact target is confirmed.

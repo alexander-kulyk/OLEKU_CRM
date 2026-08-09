@@ -1,248 +1,226 @@
 ## Purpose
 
-Defines how scheduled events are stored, read for a calendar period, created, replaced, and deleted, including the participant rules and the time-instant contract the calendar depends on. It is the behavioral contract behind the Events page's calendar and its event dialog.
+Defines the exact server contract for reading events over a calendar period and creating, partially updating, and deleting events with validated participants and unambiguous instants.
 
 ## ADDED Requirements
 
-### Requirement: Period-bounded calendar read
+### Requirement: Calendar reads use an exact bounded route
 
-The system SHALL return events by requested period only. Both period boundaries MUST be supplied; there is no unbounded read of all events. An event is in the period when it overlaps it — its start is before the period end and its end is after the period start.
+`GET /api/events` SHALL require `from` and `to` query parameters and SHALL return `{ "events": [...] }`. An event overlaps the requested half-open period when `startAt < to` and `endAt > from`. There SHALL be no unbounded event read.
 
-#### Scenario: Overlapping events returned
+#### Scenario: Overlapping events are returned
 
-- **WHEN** a client requests events for a period
-- **AND** a stored event's time span overlaps that period at any point, including events that begin before it or end after it
-- **THEN** the event is included in the response
-
-#### Scenario: Non-overlapping events excluded
-
-- **WHEN** a client requests events for a period
-- **AND** a stored event lies entirely before or entirely after that period
-- **THEN** the event is absent from the response
+- **WHEN** `GET /api/events?from=<from>&to=<to>` names a valid period
+- **THEN** every event starting before `to` and ending after `from` is returned
+- **AND** the response status is 200
 
 #### Scenario: Touching boundaries do not overlap
 
-- **WHEN** a stored event ends exactly at the requested period start, or begins exactly at the requested period end
-- **THEN** the event is absent from the response
+- **WHEN** one event ends exactly at `from` and another starts exactly at `to`
+- **THEN** neither event is returned
 
-#### Scenario: Missing period rejected
+#### Scenario: Missing period boundary
 
-- **WHEN** a client requests events without both period boundaries
-- **THEN** the response status is 400
-- **AND** no events are returned
+- **WHEN** `from` or `to` is absent
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
+- **AND** no persistence query is performed
 
-#### Scenario: Inverted period rejected
+#### Scenario: Inverted period
 
-- **WHEN** a client requests events whose period end is not later than its period start
-- **THEN** the response status is 400
+- **WHEN** `to` is not later than `from`
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
 
-### Requirement: Instants accept a numeric UTC offset
+### Requirement: Accepted instants are zone-explicit absolute moments
 
-Every time instant accepted by this capability — in period boundaries and in event bodies — SHALL be an ISO 8601 instant carrying either a `Z` designator or a numeric `+HH:MM` / `-HH:MM` offset. A calendar client formats boundaries using the browser's local offset, so rejecting the numeric-offset form would make the calendar appear empty rather than report an error.
+Every instant accepted in `from`, `to`, `startAt`, or `endAt` SHALL be an ISO 8601 date-time carrying either `Z` or a numeric UTC offset in `+HH:MM` or `-HH:MM` form. It SHALL be interpreted as the absolute moment it denotes. Date-only and zone-less values SHALL be rejected.
 
-#### Scenario: Offset-bearing instant accepted
+#### Scenario: Numeric offset is accepted
 
-- **WHEN** a request supplies an instant such as `2026-08-09T09:00:00+03:00`
-- **THEN** the request is accepted
-- **AND** the instant is interpreted as the same moment as its UTC equivalent
+- **WHEN** a request supplies `2026-08-09T09:00:00+03:00`
+- **THEN** it is accepted as the same moment as `2026-08-09T06:00:00Z`
 
-#### Scenario: UTC instant accepted
+#### Scenario: Equivalent periods select the same events
 
-- **WHEN** a request supplies an instant ending in `Z`
-- **THEN** the request is accepted
+- **WHEN** two calendar reads express the same boundaries using `Z` and numeric offsets
+- **THEN** both return the same event identifiers
 
-#### Scenario: Zone-less instant rejected
+#### Scenario: Ambiguous instant is rejected
 
-- **WHEN** a request supplies a date-only value, or a date and time with no zone designator or offset
-- **THEN** the response status is 400
-- **AND** the error identifies the offending field
+- **WHEN** an instant is date-only or has no zone designator
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
 
-#### Scenario: Equivalent instants select the same events
+### Requirement: Returned events use the domain payload
 
-- **WHEN** two calendar reads request the same moments, one expressed with `Z` and one with a numeric offset
-- **THEN** both return the same set of events
+Every returned event SHALL carry exactly `id`, `title`, `startAt`, `endAt`, `attendees`, and `hosts`. `id` SHALL be a string. Each instant SHALL include a time component and explicit zone designator. Each participant SHALL be a resolved `{ id, firstName, lastName, fullName }` object rather than a bare identifier.
 
-### Requirement: Returned instants are time-bearing and zone-explicit
+#### Scenario: Event response shape
 
-Every instant the system returns SHALL include a time component and an explicit zone designator. A date-only value would cause a calendar client to reinterpret a timed event as an all-day event.
+- **WHEN** an event is returned by any event endpoint
+- **THEN** it has the declared domain fields and no audit fields
+- **AND** its participants are resolved person summaries
+- **AND** its instants cannot be interpreted as date-only values
 
-#### Scenario: Event instants in a response
+### Requirement: Events can be created
 
-- **WHEN** an event is returned by any endpoint of this capability
-- **THEN** its start and end are ISO 8601 instants that include a time component and a zone designator
+`POST /api/events` SHALL accept `title`, `startAt`, `endAt`, and optional `attendeeIds` and `hostIds`. Omitted participant arrays SHALL default to empty arrays. A successful create SHALL return status 201 and the created event directly.
 
-### Requirement: Event payload shape
+#### Scenario: Valid event creation
 
-An event returned by the system SHALL carry a stable identifier, its title, its start and end instants, and its assigned attendees and hosts as resolved person records rather than bare identifiers, so a client can render participant names without a second request.
-
-#### Scenario: Reading an event
-
-- **WHEN** an event is returned
-- **THEN** it carries an identifier, a title, a start instant, an end instant, an attendee collection, and a host collection
-- **AND** each participant entry carries at least an identifier and both name parts
-
-### Requirement: Event creation
-
-The system SHALL create an event from a title, a start instant, an end instant, and optional attendee and host assignments, and return the created event.
-
-#### Scenario: Valid creation
-
-- **WHEN** a client submits a valid new event
+- **WHEN** a valid create body is submitted
 - **THEN** the response status is 201
-- **AND** the response carries the created event including its new identifier
-- **AND** a subsequent calendar read covering that period includes the event
-
-#### Scenario: Blank title rejected
-
-- **WHEN** a client submits an event whose title is empty or consists only of whitespace
-- **THEN** the response status is 400
-- **AND** no event is created
-
-#### Scenario: Over-long title rejected
-
-- **WHEN** a client submits an event whose title exceeds the permitted length
-- **THEN** the response status is 400
-- **AND** no event is created
+- **AND** the body is the created event with its assigned identifier
+- **AND** a covering calendar read returns it
 
 #### Scenario: Creation without participants
 
-- **WHEN** a client submits a valid event with no attendees and no hosts
-- **THEN** the event is created with empty attendee and host collections
+- **WHEN** a valid create body omits both participant arrays
+- **THEN** the created event has empty attendee and host arrays
 
-### Requirement: End must be strictly later than start
+### Requirement: Event titles are meaningful
 
-The system SHALL reject any create or update whose end instant is not strictly later than its start instant, and MUST enforce this on every write path. A calendar client silently discards an end that is not after the start and substitutes a default duration, so an unenforced span renders as a plausible but wrong block instead of an error.
+An event title SHALL be required on create, SHALL be trimmed before storage, and SHALL NOT be empty or whitespace-only. A supplied title on update SHALL follow the same rules.
 
-#### Scenario: Equal instants rejected on creation
+#### Scenario: Whitespace-only title
 
-- **WHEN** a client submits an event whose end equals its start
-- **THEN** the response status is 400
+- **WHEN** create or update supplies a whitespace-only title
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
+- **AND** no event is created or modified
+
+#### Scenario: Padded title
+
+- **WHEN** a valid title has leading or trailing whitespace
+- **THEN** the stored and returned title is trimmed
+
+### Requirement: End is strictly later than start
+
+Every create or update SHALL be rejected when its resulting `endAt` is not strictly later than its resulting `startAt`. This invariant SHALL hold on every event write path.
+
+#### Scenario: Invalid span on create
+
+- **WHEN** create supplies an end equal to or earlier than its start
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
 - **AND** no event is created
 
-#### Scenario: Inverted span rejected on creation
+#### Scenario: Partial update would invert the span
 
-- **WHEN** a client submits an event whose end is earlier than its start
-- **THEN** the response status is 400
-- **AND** no event is created
-
-#### Scenario: Inverted span rejected on update
-
-- **WHEN** a client updates an existing event so that its end is not later than its start
-- **THEN** the response status is 400
+- **WHEN** PATCH changes one or both boundaries and the merged event would have an end not later than its start
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
 - **AND** the stored event is unchanged
 
-### Requirement: Update replaces the whole event
+### Requirement: PATCH updates only supplied fields
 
-An update SHALL carry the complete event. Every updatable field, including both participant collections, is replaced by the submitted value; an omitted participant collection means the event has no participants of that kind. There is no partial-merge update that leaves unsent fields untouched.
+`PATCH /api/events/:id` SHALL accept any non-empty subset of `title`, `startAt`, `endAt`, `attendeeIds`, and `hostIds`. Omitted fields SHALL retain their stored values. A supplied participant array SHALL replace that role's entire set; an empty array SHALL clear it. A successful update SHALL return status 200 and the updated event directly.
 
-#### Scenario: Successful update
+#### Scenario: Title-only update
 
-- **WHEN** a client updates an existing event with valid values
-- **THEN** the response status is 200
-- **AND** the response carries the updated event
-- **AND** a subsequent read reflects every submitted value
+- **WHEN** PATCH supplies only `title`
+- **THEN** the title changes
+- **AND** the stored instants and participant assignments remain unchanged
 
-#### Scenario: Omitted participants clear assignments
+#### Scenario: Participant set replacement
 
-- **WHEN** a client updates an existing event that has assigned attendees and hosts
-- **AND** the request omits both participant collections
-- **THEN** the stored event afterwards has no attendees and no hosts
+- **WHEN** PATCH supplies `attendeeIds` containing B and C for an event currently assigned A and B
+- **THEN** the stored attendee set becomes exactly B and C
 
-#### Scenario: Updating a nonexistent event
+#### Scenario: Empty participant array
 
-- **WHEN** a client updates an event identifier that does not exist
-- **THEN** the response status is 404
-- **AND** nothing is created
+- **WHEN** PATCH supplies an empty `hostIds` array
+- **THEN** every host assignment is removed
 
-### Requirement: Event deletion
+#### Scenario: Empty update body
 
-The system SHALL delete an existing event and remove it from subsequent calendar reads.
+- **WHEN** PATCH supplies none of the editable fields
+- **THEN** the response status is 400 with `VALIDATION_ERROR`
 
-#### Scenario: Deleting an existing event
+#### Scenario: Unknown event on update
 
-- **WHEN** a client deletes an existing event
-- **THEN** the deletion succeeds
-- **AND** a subsequent calendar read covering that period does not include the event
+- **WHEN** PATCH targets a well-formed identifier matching no event
+- **THEN** the response status is 404 with `NOT_FOUND`
 
-#### Scenario: Deleting a nonexistent event
+### Requirement: New participant assignments must be valid
 
-- **WHEN** a client deletes an event identifier that does not exist
-- **THEN** the response status is 404
+Attendees SHALL reference contacts and hosts SHALL reference employees. Every participant newly assigned by create or update SHALL exist and have `status=active`; every newly assigned host SHALL additionally have `canHostEvents=true`. A failed participant check SHALL leave the event unchanged.
 
-### Requirement: Participants must exist and be assignable
+#### Scenario: Unknown or wrong-role participant
 
-The system SHALL reject an assignment naming a person who does not exist, a person whose status is not active, or an employee not eligible to host when assigned as a host. Eligibility is enforced on write, not merely filtered out of directory reads.
+- **WHEN** a write newly assigns an unknown id, an employee as attendee, or a contact as host
+- **THEN** the response status is 400 with `INVALID_PARTICIPANT`
+- **AND** the event is not created or modified
 
-#### Scenario: Unknown participant rejected
+#### Scenario: Inactive person is newly assigned
 
-- **WHEN** a client assigns an attendee or host identifier that matches no stored person
-- **THEN** the response status is 400
-- **AND** the event is neither created nor modified
+- **WHEN** a write newly assigns a contact or employee whose status is inactive
+- **THEN** the response status is 400 with `INVALID_PARTICIPANT`
 
-#### Scenario: Ineligible host rejected
+#### Scenario: Ineligible host is newly assigned
 
-- **WHEN** a client assigns as host an employee not marked as able to host events
-- **THEN** the response status is 400
-- **AND** the event is neither created nor modified
+- **WHEN** a write newly assigns an employee whose `canHostEvents` is false as a host
+- **THEN** the response status is 400 with `INVALID_PARTICIPANT`
 
-#### Scenario: Non-active person rejected
+#### Scenario: Existing assignment is retained
 
-- **WHEN** a client assigns a person whose status is not active
-- **THEN** the response status is 400
-- **AND** the event is neither created nor modified
+- **WHEN** an assigned person later becomes inactive or an assigned host becomes ineligible
+- **AND** PATCH either omits that role's array or supplies an array retaining the same identifier
+- **THEN** the update may succeed and the existing assignment remains
 
-#### Scenario: Attendees come from contacts and hosts from employees
+### Requirement: Duplicate assignments collapse within a role
 
-- **WHEN** a client assigns an employee identifier as an attendee, or a contact identifier as a host
-- **THEN** the response status is 400
-- **AND** the event is neither created nor modified
+The same participant identifier SHALL appear at most once in each stored attendee or host set. Duplicate ids in a submitted set SHALL collapse to one assignment rather than creating duplicates.
 
-### Requirement: No duplicate assignment
+#### Scenario: Repeated identifier
 
-The system SHALL NOT assign the same person to an event twice in the same role.
+- **WHEN** a write submits the same identifier more than once in one participant array
+- **THEN** the write succeeds if the assignment is otherwise valid
+- **AND** the returned event contains that person once in that role
 
-#### Scenario: Repeated identifier in one request
+### Requirement: Dangling participant references do not break reads
 
-- **WHEN** a client submits the same person identifier more than once in the same participant collection
-- **THEN** the person is assigned exactly once
-- **AND** the response reflects a single assignment
+When an event contains a participant reference that no longer resolves, the event SHALL still be returned. The missing participant SHALL be omitted from the resolved collection without affecting other events or participants.
 
-#### Scenario: Same person in both roles
+#### Scenario: Missing participant on calendar read
 
-- **WHEN** a person is eligible in both roles and is assigned once as attendee and once as host
-- **THEN** both assignments are retained, since they are different roles
-
-### Requirement: Unresolvable participant references do not break a read
-
-If an assigned participant can no longer be resolved to a person, the event SHALL still be returned with its remaining participants, so one dangling reference cannot make a whole calendar period unreadable.
-
-#### Scenario: Event referencing a missing person
-
-- **WHEN** a calendar read includes an event whose assigned participant no longer resolves to a stored person
-- **THEN** the event is returned
-- **AND** the unresolvable participant is omitted from the returned participant collection
-- **AND** the remaining participants are present
+- **WHEN** a matching event contains one unresolvable participant reference
+- **THEN** the calendar read succeeds
+- **AND** the event and its resolvable participants are returned
+- **AND** the unresolvable participant is omitted
 
 ### Requirement: Audit fields are server-controlled
 
-The event record SHALL carry a creating actor and an updating actor, and these values MUST NOT be accepted from the request. Until authentication exists there is no trustworthy actor, so they are recorded as absent.
+Stored events SHALL carry nullable `createdByUserId` and `updatedByUserId`, both written as null until authentication exists. A client-supplied audit value SHALL be ignored and SHALL NOT be persisted. Audit fields SHALL NOT appear in event responses.
 
-#### Scenario: Client supplies an actor identifier
+#### Scenario: Client supplies audit fields
 
-- **WHEN** a client submits an event body containing a creating or updating actor identifier
-- **THEN** the submitted value is ignored
-- **AND** the stored event's actor fields remain absent
+- **WHEN** create or update includes a creating or updating user identifier
+- **THEN** the supplied value is not persisted
+- **AND** both stored audit fields remain null
+- **AND** neither audit field appears in the response
 
-### Requirement: Event storage carries the declared field set
+### Requirement: Failed writes are atomic
 
-Stored events SHALL persist title, start instant, end instant, attendee assignments, host assignments, and the two actor fields, and MUST be queryable by time period without scanning every event.
+A failed create, update, or delete SHALL leave stored event data unchanged and SHALL NOT produce a partial participant or span update.
 
-#### Scenario: Round-tripping an event
+#### Scenario: Participant validation fails during update
 
-- **WHEN** an event is created and then read back
-- **THEN** every stored field is returned unchanged apart from server-controlled values
+- **WHEN** PATCH contains a valid title and an invalid new participant assignment
+- **THEN** the response status is 400
+- **AND** the original title and participant sets remain stored
 
-#### Scenario: Period query is index-supported
+### Requirement: Events can be deleted
 
-- **WHEN** a calendar read is issued for a period
-- **THEN** the query is satisfied using a declared index on the event time fields
+`DELETE /api/events/:id` SHALL return status 204 with no body after deleting an existing event. A well-formed identifier matching no event SHALL receive 404. A malformed identifier SHALL receive 400.
+
+#### Scenario: Successful deletion
+
+- **WHEN** DELETE targets an existing event
+- **THEN** the response status is 204 with no body
+- **AND** subsequent calendar reads do not return the event
+
+#### Scenario: Unknown event deletion
+
+- **WHEN** DELETE targets a well-formed identifier matching no event
+- **THEN** the response status is 404 with `NOT_FOUND`
+
+#### Scenario: Malformed event identifier
+
+- **WHEN** PATCH or DELETE targets a malformed event identifier
+- **THEN** the response status is 400 with `VALIDATION_ERROR`

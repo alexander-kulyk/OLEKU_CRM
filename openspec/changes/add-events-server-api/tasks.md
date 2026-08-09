@@ -1,155 +1,161 @@
-## 1. Confirm database state and declare dependencies
+## 1. Confirm the database precondition and establish isolated tests
 
-- [ ] 1.1 Confirm the runtime state of the `contacts`, `employees`, and `events` collections before any code writes to them: actual collection names, document counts, and one sample document per non-empty collection. Tooling cannot read `server/.env`, so this requires the user or someone authorized to run it and report the result.
-- [ ] 1.2 Record the confirmed state in this change (a short note under this stage is enough). If any collection holds documents under the older `name` / `startsAt` / `endsAt` naming, stop and raise it — design.md's models would read them as untitled events with no times, and the plan needs revisiting before a write happens.
-- [ ] 1.3 Add `zod` as a server dependency from the repo root: `pnpm --filter server add zod`.
-- [ ] 1.4 Add `mongodb-memory-server` as a server dev dependency from the repo root: `pnpm --filter server add -D mongodb-memory-server`.
-- [ ] 1.5 Add a `test` script to `server/package.json` running `node --test` over `src/**/*.test.ts`.
-- [ ] 1.6 Commit the updated `pnpm-lock.yaml` alongside `server/package.json`.
+- [ ] 1.1 Obtain a read-only observation from the user or an authorized database owner for `contacts`, `employees`, and `events`: actual collection names, document counts, and one redacted sample from each non-empty collection. The verifier records the observation in the Stage report; no implementation agent reads credentials or edits an OpenSpec artifact.
+- [ ] 1.2 Stop before adding persistence code if any observed event uses `name`, `startsAt`, or `endsAt`, or if the observed collection names conflict with the explicit bindings in design.md; request a migration decision instead of guessing.
+- [ ] 1.3 From the repository root, add `zod` as a server dependency and `mongodb-memory-server` as a server development dependency through pnpm, updating `server/package.json` and `pnpm-lock.yaml` together.
+- [ ] 1.4 Add the server `test` script with the exact runner target `node --test src/test/*.test.ts`.
+- [ ] 1.5 Add a test-environment helper that starts `mongodb-memory-server`, assigns its URI to `process.env.DB_HOST`, and only then dynamically imports application, configuration, database, or model modules. Add cleanup that disconnects Mongoose and stops the in-memory server.
+- [ ] 1.6 Add an isolation test that begins with a non-test `DB_HOST`, invokes the helper, and proves the effective connection URI is the in-memory instance rather than the original value.
 
 **Validation:**
 
-- `pnpm install --frozen-lockfile` (from the repo root — proves the lockfile matches the manifests)
-- `pnpm --filter server exec node -e "require.resolve('zod')"`
+- Manual observation by the user or authorized database owner: collection names, counts, and redacted samples are present in the verifier's Stage report.
+- `pnpm install --frozen-lockfile`
+- `pnpm --filter server list zod mongodb-memory-server --depth 0`
+- `pnpm --filter server test`
 - `pnpm --filter server build`
 
 **Done when:**
 
-- The state of all three collections is confirmed and written down, with no unreported pre-existing documents.
-- `zod` and `mongodb-memory-server` appear in `server/package.json` and in `pnpm-lock.yaml`'s `server` importer.
-- `pnpm install --frozen-lockfile` succeeds from a clean `node_modules`.
+- The database observation is compatible with `title`, `startAt`, and `endAt`, or all three target collections are confirmed absent or empty.
+- Both dependencies are declared in the correct manifest sections and resolved by the `server` importer in `pnpm-lock.yaml`.
+- The test suite proves that application imports occur only after `DB_HOST` points at the disposable in-memory database.
 
-**Do not:** write to any collection during this stage, and do not treat "the existing changes say they are empty" as confirmation.
+**Do not:** read `server/.env`, request or print Atlas credentials, connect to or write a hosted database, edit planning artifacts, or create a commit.
 
-## 2. Shared HTTP foundation
+**Rollback:** remove the two dependency declarations and test script through pnpm, and restore the matching lockfile changes; the in-memory database is discarded by test cleanup.
 
-- [ ] 2.1 Add `src/shared/http/error-envelope.ts` and `src/shared/http/http-error.ts`: the `{ error: { code, message } }` shape and a typed error carrying an HTTP status and a stable code.
-- [ ] 2.2 Add `src/shared/http/validate.ts` — a boundary helper that validates params, query, and body with zod and raises a 400 typed error on failure, before any data access.
-- [ ] 2.3 Add `src/shared/http/error-handler.ts`: map typed errors to their status and code, validation failures to 400, everything else to a generic 500. Log the real error server-side; emit no message, stack, or driver text in the response.
-- [ ] 2.4 Add `src/shared/http/not-found.ts`: emit the envelope with a 404 without reflecting `req.originalUrl`.
-- [ ] 2.5 Replace the inline 404 and error handler in `src/app.ts` with these two, keeping them last in the middleware order and leaving `GET /api/health` unchanged.
+## 2. Replace the shared HTTP terminal behavior
+
+- [ ] 2.1 Add the shared error-envelope type and a typed HTTP error carrying a status, one of the specified stable error codes, and a safe public message.
+- [ ] 2.2 Add a Zod boundary helper that parses supplied params, query, or body, returns the parsed value, and never assigns to `req.query` or another Express request property.
+- [ ] 2.3 Add one error middleware that maps validation and typed domain errors to `{ error: { code, message } }`, logs the underlying failure server-side, and maps every unknown failure to a generic `INTERNAL_ERROR` response.
+- [ ] 2.4 Add a terminal not-found handler that returns the exact `NOT_FOUND` envelope without reflecting `req.originalUrl`.
+- [ ] 2.5 Replace the inline terminal handlers in `src/app.ts`, preserve `GET /api/health` as `{ status: "ok" }`, and keep both terminal handlers last.
+- [ ] 2.6 Add integration tests for health, unknown routes, Zod validation failure, typed failures, and a synthetic internal failure containing a stack, URL, raw exception message, and MongoDB-like driver text.
 
 **Depends on:** Stage 1
-
-**Validation:**
-
-- `pnpm --filter server build`
-- `pnpm --filter server dev`, then `curl -i http://localhost:<port>/api/does-not-exist` — status 404, envelope shape, and the response body does not contain `does-not-exist`
-- `curl -i http://localhost:<port>/api/health` — unchanged successful response
-
-**Done when:**
-
-- No response body in any environment can contain `error.stack`, a raw exception message, or the caller's URL — verified by reading `src/app.ts` and the new handlers, with no remaining reference to `error.message` or `error.stack` in a response path.
-- `GET /api/health` behaves exactly as before.
-
-## 3. Directory persistence and seed
-
-- [ ] 3.1 Add `src/modules/directory/contact.model.ts` bound to the `contacts` collection: `firstName`, `lastName`, `email`, `status`.
-- [ ] 3.2 Add `src/modules/directory/employee.model.ts` bound to the `employees` collection: `firstName`, `lastName`, `email`, `position`, `department`, `canHostEvents`, `status`.
-- [ ] 3.3 Declare the indexes supporting the status filter and the name ordering on both models.
-- [ ] 3.4 Add `src/shared/db/seed.ts` — an idempotent seed for contacts and employees, including at least one inactive person and one employee with `canHostEvents` false, so the filtering paths have data to exercise.
-- [ ] 3.5 Add a script to run the seed against the configured database.
-
-**Depends on:** Stage 1
-
-**Validation:**
-
-- `pnpm --filter server build`
-- Run the seed twice against a scratch database; the second run creates no duplicates
-
-**Done when:**
-
-- Both models bind explicitly to the existing collection names.
-- The seed is idempotent and produces at least one inactive person and one non-hosting employee.
-
-**Do not:** touch the `users` collection.
-
-**Rollback:** drop the declared indexes and remove seeded documents from the scratch database; no other durable state is created.
-
-## 4. Directory endpoints
-
-- [ ] 4.1 Add `directory.schema.ts` — query validation for search term (length-capped), status selection, host-eligibility filter, and requested size.
-- [ ] 4.2 Add `directory.service.ts` — resolve queries with the search term escaped as literal text, active-only unless other statuses are explicitly requested, deterministic ordering, and a server-enforced result cap that clamps rather than rejects an over-large request.
-- [ ] 4.3 Add `directory.controller.ts` translating HTTP to service calls and back.
-- [ ] 4.4 Add `directory.routes.ts` exposing the contact read and the employee read, the latter accepting the host-eligibility filter.
-- [ ] 4.5 Mount the directory router in `src/app.ts` under `/api`, above the 404 and error handler.
-
-**Depends on:** Stages 2, 3
-
-**Validation:**
-
-- `pnpm --filter server build`
-- Against the seeded database: a read with no filters excludes the inactive person; a read restricted to eligible hosts returns only employees with `canHostEvents` true; a search term containing `.*` returns only literal matches and does not error; a search term over the cap returns 400; a requested size above the maximum returns the maximum rather than an error
-
-**Done when:**
-
-- Every directory scenario in `specs/directory-api/spec.md` is observably satisfied.
-- No directory route creates, modifies, or deletes a person.
-
-## 5. Event persistence and rules
-
-- [ ] 5.1 Add `src/modules/events/event.model.ts` bound to the `events` collection: `title`, `startAt`, `endAt`, `attendeeIds`, `hostIds`, `createdByUserId`, `updatedByUserId`, with a compound index on `{ startAt, endAt }`.
-- [ ] 5.2 Add `event.schema.ts` — validation for the calendar period and for event bodies, with every instant parsed by an ISO datetime validator configured to **accept a numeric UTC offset**, not only `Z`. Reject date-only and zone-less values.
-- [ ] 5.3 Add `event.service.ts` create and update as a document round-trip (`new … save()` / load → assign → save), never a bare query update, so document validation runs on both paths.
-- [ ] 5.4 Enforce `endAt > startAt` in the service for both create and update, and express it on the schema as defense in depth.
-- [ ] 5.5 Implement participant resolution as one step: collapse duplicates, resolve attendee ids against `contacts` and host ids against `employees`, then reject unknown ids, non-active people, ineligible hosts, and role mismatches with a single 400.
-- [ ] 5.6 Ignore any client-supplied actor field; write `createdByUserId` and `updatedByUserId` as null.
-- [ ] 5.7 Serialize instants back as ISO strings that always carry a time component and a zone designator, and resolve participants into person records, omitting any that no longer resolve.
-
-**Depends on:** Stages 2, 3
-
-**Validation:**
-
-- `pnpm --filter server build`
-
-**Done when:**
-
-- No create or update path reaches storage through `findOneAndUpdate` or `updateOne` — verified by reading `event.service.ts`.
-- The span check and the participant check each exist exactly once and are reached by both create and update.
-
-## 6. Event endpoints
-
-- [ ] 6.1 Add `event.controller.ts` for the period read, create, whole-object update, and delete.
-- [ ] 6.2 Add `event.routes.ts` wiring the four operations with boundary validation; controllers are `async` and throw, relying on Express 5 forwarding rejections to the error handler.
-- [ ] 6.3 Implement the period read as `startAt < to AND endAt > from`, with both boundaries required and an inverted period rejected with 400.
-- [ ] 6.4 Implement update as a whole-object replace: omitted participant collections clear the assignments; a missing event id returns 404.
-- [ ] 6.5 Implement delete, returning 404 for an unknown id.
-- [ ] 6.6 Mount the events router in `src/app.ts` under `/api`, above the 404 and error handler.
-
-**Depends on:** Stage 5
-
-**Validation:**
-
-- `pnpm --filter server build`
-- Against a scratch database: create an event, read it back in a covering period, update it with participants omitted and confirm they are cleared, delete it and confirm a covering period no longer returns it; a period read missing a boundary returns 400; update and delete of an unknown id return 404
-
-**Done when:**
-
-- Every scenario in `specs/event-api/spec.md` is observably satisfied.
-- An event created with participants and then updated without them has no participants afterwards.
-
-## 7. Automated verification
-
-- [ ] 7.1 Add the test harness: start `mongodb-memory-server`, connect, and reset collections between tests.
-- [ ] 7.2 Test the period read with **offset-bearing boundaries** (for example `+03:00`) and assert the same result set as the equivalent `Z` boundaries, and that a matching event is returned rather than an empty list.
-- [ ] 7.3 Test that a date-only or zone-less instant is rejected with 400.
-- [ ] 7.4 Test the span invariant on **both** paths: creation with `end == start` and with `end < start`, and an update that inverts the span, asserting in the update case that the stored event is unchanged.
-- [ ] 7.5 Test boundary semantics: an event ending exactly at the period start and one beginning exactly at the period end are both excluded.
-- [ ] 7.6 Test participant rules: unknown id, non-active person, employee without `canHostEvents` assigned as host, contact assigned as host, employee assigned as attendee, and a repeated id collapsing to one assignment.
-- [ ] 7.7 Test that an event whose stored participant no longer resolves is still returned with the remaining participants.
-- [ ] 7.8 Test that a client-supplied actor field is ignored and the stored actor fields stay null.
-- [ ] 7.9 Test directory search with regular-expression characters in the term, the length cap, the requested-size clamp, and active-only-by-default.
-- [ ] 7.10 Test the error contract: an unknown route's 404 body does not contain the requested path, and no failure response contains a stack trace, a raw exception message, or driver text.
-
-**Depends on:** Stages 4, 6
 
 **Validation:**
 
 - `pnpm --filter server test`
 - `pnpm --filter server build`
-- `pnpm install --frozen-lockfile` from a clean `node_modules`
 
 **Done when:**
 
-- `pnpm --filter server test` passes, and its output is the evidence for every claim made about this change's behavior. Until this stage passes, no stage above may be reported as verified beyond its own stated checks.
-- The offset-boundary test fails if the instant validator is reverted to `Z`-only, and the update-span test fails if the service is switched to a bare query update — confirm each by temporarily reverting, observing the failure, and restoring.
+- Health returns the existing exact payload.
+- Every failure uses the exact envelope and stable code, and tests prove that no response includes the requested path, stack, raw exception message, or driver detail.
+- Parsed request data reaches handlers without mutating Express request properties.
+
+## 3. Add directory persistence and the local-only seed
+
+- [ ] 3.1 Add a contact model explicitly bound to `contacts` with `firstName`, `lastName`, `email`, and closed `active | inactive` status values defaulting to `active`.
+- [ ] 3.2 Add an employee model explicitly bound to `employees` with the contact fields plus `position`, `department`, and `canHostEvents` defaulting to `false`; use erasable TypeScript and do not add a model for `users`.
+- [ ] 3.3 Add `{ status: 1, lastName: 1, firstName: 1, _id: 1 }` indexes to both directory models and do not add a unique email index.
+- [ ] 3.4 Add an explicit seed command that upserts a fixed directory dataset by email, includes inactive and ineligible examples, never touches `events` or `users`, and refuses every MongoDB URI whose host is not loopback.
+- [ ] 3.5 Add tests that run the seed twice against the in-memory database, compare the resulting records and counts, and prove that a non-loopback URI is rejected before connecting or writing.
+
+**Depends on:** Stage 1
+
+**Validation:**
+
+- `pnpm --filter server test`
+- `pnpm --filter server build`
+
+**Done when:**
+
+- Both models use the exact collection names, fields, defaults, status values, and indexes from design.md.
+- Two seed runs produce the same directory records without duplicates.
+- Automated tests prove the seed cannot target Atlas or another non-loopback host and never changes `events` or `users`.
+
+**Do not:** execute the seed with `server/.env` or against any shared, hosted, or production-like database.
+
+## 4. Implement the read-only directory API
+
+- [ ] 4.1 Add directory query schemas accepting only `search` and `status` for contacts, plus `canHostEvents` for employees; cap `search` at 100 characters and reject unknown query keys such as `size` or `limit`.
+- [ ] 4.2 Add directory services that treat search text literally, match `firstName` or `lastName` case-insensitively, default status to `active`, cap results at 50, and order by `lastName`, `firstName`, then `_id`.
+- [ ] 4.3 Add controllers and routes for exactly `GET /api/contacts` and `GET /api/employees`, returning `{ contacts: [...] }` and `{ employees: [...] }` with only the fields specified for each projection.
+- [ ] 4.4 Mount the directory router under `/api` above the terminal handlers and add no directory write route.
+- [ ] 4.5 Add integration tests for exact wrappers and projections, active-by-default behavior, explicit inactive selection, employee eligibility filtering, deterministic tie ordering, the 50-result cap, literal metacharacter search, the 100-character boundary, rejected unknown query keys, and 404 responses for attempted writes.
+
+**Depends on:** Stages 2 and 3
+
+**Validation:**
+
+- `pnpm --filter server test`
+- `pnpm --filter server build`
+
+**Done when:**
+
+- Every directory scenario in `specs/directory-api/spec.md` passes against the in-memory database.
+- Directory responses expose no persistence metadata and no route can create, update, or delete a person.
+
+## 5. Implement event persistence and domain rules
+
+- [ ] 5.1 Add an event model explicitly bound to `events` with `title`, `startAt`, `endAt`, `attendeeIds`, `hostIds`, nullable `createdByUserId`, and nullable `updatedByUserId`, plus the `{ startAt: 1, endAt: 1 }` index.
+- [ ] 5.2 Add schemas for `from`/`to`, create, partial PATCH, and id params. Parse full ISO instants with `z.iso.datetime({ offset: true })`; reject date-only and zone-less values; trim non-empty titles; strip client-supplied audit fields.
+- [ ] 5.3 Add one shared service function for the primary `endAt > startAt` check and call it with the complete candidate state from both create and PATCH. Add a document validation hook as a persistence backstop.
+- [ ] 5.4 Implement create with document `save()` and PATCH as load, merge only supplied fields, validate the merged candidate, then `save()`; an omitted participant field remains unchanged and an explicitly empty array clears that role.
+- [ ] 5.5 De-duplicate participant ids and batch-resolve each supplied role. On create validate every id as new; on PATCH require existence, active status, and host eligibility only for ids newly added relative to the stored role, while allowing retained inactive or newly ineligible assignments to remain and be removed.
+- [ ] 5.6 Complete participant validation before mutating the loaded event so a rejected write leaves storage unchanged. Resolve attendees only from contacts and hosts only from employees.
+- [ ] 5.7 Ignore client audit values, persist both audit fields as null, serialize dates with `toISOString()`, batch-resolve participant projections on reads, and omit dangling references without failing the event.
+- [ ] 5.8 Add service and persistence tests for zero or inverted spans on both write paths, one-sided boundary patches, omitted and empty participant arrays, duplicate ids, unknown ids, wrong-role ids, inactive new ids, ineligible new hosts, retained historical assignments, removal of historical assignments, dangling references, forged audit values, and atomic failed writes.
+
+**Depends on:** Stages 2 and 3
+
+**Validation:**
+
+- `pnpm --filter server test`
+- `pnpm --filter server build`
+
+**Done when:**
+
+- Create and PATCH both invoke the shared span function and reach the document-validation backstop through `save()`; no event write uses `updateOne`, `findOneAndUpdate`, or another bare query update.
+- All participant transition and failure cases preserve the exact rules in `specs/event-api/spec.md`, including unchanged stored state after rejection.
+- Event mapping exposes only the domain fields and never audit or persistence metadata.
+
+## 6. Expose and verify the event HTTP contract
+
+- [ ] 6.1 Add async event controllers and routes for exactly `GET /api/events`, `POST /api/events`, `PATCH /api/events/:id`, and `DELETE /api/events/:id`, relying on Express 5 to forward rejected promises.
+- [ ] 6.2 Implement the required period query as `startAt < to AND endAt > from`; reject a missing or non-increasing `from`/`to` pair before data access.
+- [ ] 6.3 Return `{ events: [...] }` from the period read, a direct event from create and PATCH, status 201 from create, status 200 from PATCH, and status 204 with no body from delete.
+- [ ] 6.4 Return the specified `VALIDATION_ERROR`, `INVALID_PARTICIPANT`, and `NOT_FOUND` codes for their exact cases, including unknown event ids, and mount the router under `/api` above the terminal handlers.
+- [ ] 6.5 Add integration tests proving equivalent `+03:00` and `Z` periods return the same events, boundary-touching events are excluded, overlapping events are included, required and ordered boundaries are enforced, and date-only or zone-less values are rejected.
+- [ ] 6.6 Add contract tests for exact route names, query names, wrappers, projections, status codes, partial PATCH preservation, explicit participant clearing, not-found behavior, audit suppression, dangling-reference reads, and empty response body on delete.
+- [ ] 6.7 Add endpoint-level tests proving invalid create and PATCH requests leave the database unchanged and every error response remains free of internal details.
+
+**Depends on:** Stages 4 and 5
+
+**Validation:**
+
+- `pnpm --filter server test`
+- `pnpm --filter server build`
+
+**Done when:**
+
+- Every scenario in `specs/event-api/spec.md` and every shared response requirement in `specs/api-foundation/spec.md` passes against the in-memory database.
+- The observable API matches proposal.md exactly, with no whole-object update behavior and no alternate route or query vocabulary.
+
+## 7. Run the final change gate
+
+- [ ] 7.1 Review the implementation against proposal.md, design.md, and all three delta specs, and record the evidence for each Stage in the verifier report without modifying the planning artifacts.
+- [ ] 7.2 Confirm all relative source imports use `.ts`, all feature files remain under `server/src/modules/`, environment access remains in `server/src/shared/config/env.ts`, routers precede the terminal handlers, and no model or write path targets `users`.
+- [ ] 7.3 Confirm the implementation changed only the server package and the workspace lockfile; do not implement client mapping, authentication, recurrence, concurrency control, or future time-zone policy.
+- [ ] 7.4 Run the complete dependency, test, and build gates from the repository root and retain their outputs in the verifier report.
+
+**Depends on:** Stage 6
+
+**Validation:**
+
+- `pnpm install --frozen-lockfile`
+- `pnpm --filter server list zod mongodb-memory-server --depth 0`
+- `pnpm --filter server test`
+- `pnpm --filter server build`
+
+**Done when:**
+
+- Every Stage criterion is supported by observed command output or an explicit manual observation, and every research verification concern R-001, R-004, R-005, R-006, R-007, R-009, and R-011 has recorded evidence.
+- No validation contacted Atlas, no planning artifact was edited by executor or verifier, and no deployment, push, or commit occurred.
+- The change is ready for an orchestrator-controlled implementation commit and subsequent `/opsx:verify`; it is not exposed outside local development while authorization remains out of scope.
+
+**Do not:** deploy the unauthenticated endpoints, edit the superseded changes, create a commit, or archive/sync this change during implementation.
