@@ -1,11 +1,11 @@
 ## 1. Confirm the database precondition and establish isolated tests
 
-- [ ] 1.1 Obtain a read-only observation from the user or an authorized database owner for `contacts`, `employees`, and `events`: actual collection names, document counts, and one redacted sample from each non-empty collection. The verifier records the observation in the Stage report; no implementation agent reads credentials or edits an OpenSpec artifact.
-- [ ] 1.2 Stop before adding persistence code if any observed event uses `name`, `startsAt`, or `endsAt`, or if the observed collection names conflict with the explicit bindings in design.md; request a migration decision instead of guessing.
-- [ ] 1.3 From the repository root, add `zod` as a server dependency and `mongodb-memory-server` as a server development dependency through pnpm, updating `server/package.json` and `pnpm-lock.yaml` together.
-- [ ] 1.4 Add the server `test` script with the exact runner target `node --test src/test/*.test.ts`.
-- [ ] 1.5 Add a test-environment helper that starts `mongodb-memory-server`, assigns its URI to `process.env.DB_HOST`, and only then dynamically imports application, configuration, database, or model modules. Add cleanup that disconnects Mongoose and stops the in-memory server.
-- [ ] 1.6 Add an isolation test that begins with a non-test `DB_HOST`, invokes the helper, and proves the effective connection URI is the in-memory instance rather than the original value.
+- [x] 1.1 Obtain a read-only observation from the user or an authorized database owner for `contacts`, `employees`, and `events`: actual collection names, document counts, and one redacted sample from each non-empty collection. The verifier records the observation in the Stage report; no implementation agent reads credentials or edits an OpenSpec artifact.
+- [x] 1.2 Stop before adding persistence code if any observed event uses `name`, `startsAt`, or `endsAt`, or if the observed collection names conflict with the explicit bindings in design.md; request a migration decision instead of guessing.
+- [x] 1.3 From the repository root, add `zod` as a server dependency and `mongodb-memory-server` as a server development dependency through pnpm, updating `server/package.json` and `pnpm-lock.yaml` together.
+- [x] 1.4 Add the server `test` script with the exact runner target `node --test src/test/*.test.ts`.
+- [x] 1.5 Add a test-environment helper that starts `mongodb-memory-server`, assigns its URI to `process.env.DB_HOST`, and only then dynamically imports application, configuration, database, or model modules. Add cleanup that disconnects Mongoose and stops the in-memory server.
+- [x] 1.6 Add an isolation test that begins with a non-test `DB_HOST`, invokes the helper, and proves the effective connection URI is the in-memory instance rather than the original value.
 
 **Validation:**
 
