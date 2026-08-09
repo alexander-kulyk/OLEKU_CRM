@@ -1,4 +1,4 @@
-schema: spec-driven
+schema: research-driven
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
@@ -8,6 +8,22 @@ schema: spec-driven
 #     Tech stack: TypeScript, React, Node.js
 #     We use conventional commits
 #     Domain: e-commerce platform
+
+rules:
+  proposal:
+    - If the change contains research.md, read it in full before writing.
+      Resolve every Decision needed that changes scope or behavior; never
+      silently promote an Assumption or Unknown to fact.
+  specs:
+    - If research.md exists, cover every applicable research handoff behavior
+      with a normative requirement and scenario.
+  design:
+    - If research.md exists, preserve its handoff constraints and carry material
+      Assumptions and Unknowns into Risks / Trade-offs or Open Questions.
+  tasks:
+    - Use numbered Stage headings with checkbox tasks. Every Stage must end with
+      exact Validation checks and objective Done when criteria. Add Do not and
+      Rollback only when relevant.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
