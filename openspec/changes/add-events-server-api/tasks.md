@@ -116,13 +116,13 @@
 
 ## 6. Expose and verify the event HTTP contract
 
-- [ ] 6.1 Add async event controllers and routes for exactly `GET /api/events`, `POST /api/events`, `PATCH /api/events/:id`, and `DELETE /api/events/:id`, relying on Express 5 to forward rejected promises.
-- [ ] 6.2 Implement the required period query as `startAt < to AND endAt > from`; reject a missing or non-increasing `from`/`to` pair before data access.
-- [ ] 6.3 Return `{ events: [...] }` from the period read, a direct event from create and PATCH, status 201 from create, status 200 from PATCH, and status 204 with no body from delete.
-- [ ] 6.4 Return the specified `VALIDATION_ERROR`, `INVALID_PARTICIPANT`, and `NOT_FOUND` codes for their exact cases, including unknown event ids, and mount the router under `/api` above the terminal handlers.
-- [ ] 6.5 Add integration tests proving equivalent `+03:00` and `Z` periods return the same events, boundary-touching events are excluded, overlapping events are included, required and ordered boundaries are enforced, and date-only or zone-less values are rejected.
-- [ ] 6.6 Add contract tests for exact route names, query names, wrappers, projections, status codes, partial PATCH preservation, explicit participant clearing, not-found behavior, audit suppression, dangling-reference reads, and empty response body on delete.
-- [ ] 6.7 Add endpoint-level tests proving invalid create and PATCH requests leave the database unchanged and every error response remains free of internal details.
+- [x] 6.1 Add async event controllers and routes for exactly `GET /api/events`, `POST /api/events`, `PATCH /api/events/:id`, and `DELETE /api/events/:id`, relying on Express 5 to forward rejected promises.
+- [x] 6.2 Implement the required period query as `startAt < to AND endAt > from`; reject a missing or non-increasing `from`/`to` pair before data access.
+- [x] 6.3 Return `{ events: [...] }` from the period read, a direct event from create and PATCH, status 201 from create, status 200 from PATCH, and status 204 with no body from delete.
+- [x] 6.4 Return the specified `VALIDATION_ERROR`, `INVALID_PARTICIPANT`, and `NOT_FOUND` codes for their exact cases, including unknown event ids, and mount the router under `/api` above the terminal handlers.
+- [x] 6.5 Add integration tests proving equivalent `+03:00` and `Z` periods return the same events, boundary-touching events are excluded, overlapping events are included, required and ordered boundaries are enforced, and date-only or zone-less values are rejected.
+- [x] 6.6 Add contract tests for exact route names, query names, wrappers, projections, status codes, partial PATCH preservation, explicit participant clearing, not-found behavior, audit suppression, dangling-reference reads, and empty response body on delete.
+- [x] 6.7 Add endpoint-level tests proving invalid create and PATCH requests leave the database unchanged and every error response remains free of internal details.
 
 **Depends on:** Stages 4 and 5
 

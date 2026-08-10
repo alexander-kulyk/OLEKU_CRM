@@ -6,6 +6,7 @@ import { env } from './shared/config/env.ts'
 import { notFoundHandler } from './shared/http/not-found-handler.ts'
 import { errorMiddleware } from './shared/http/error-middleware.ts'
 import { directoryRouter } from './modules/directory/directory.routes.ts'
+import { eventRouter } from './modules/events/event.routes.ts'
 
 export function createApp() {
   const app = express()
@@ -21,6 +22,7 @@ export function createApp() {
   })
 
   app.use('/api', directoryRouter)
+  app.use('/api', eventRouter)
 
   // Both terminal handlers stay last: mount every feature router above
   // this point (see specs/api-foundation/spec.md, "Defined routes precede

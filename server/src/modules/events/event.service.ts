@@ -3,7 +3,7 @@ import { HttpError } from '../../shared/http/error-envelope.ts'
 import { ContactModel } from '../directory/contact.model.ts'
 import { EmployeeModel } from '../directory/employee.model.ts'
 import { EventModel, type EventAttributes } from './event.model.ts'
-import type { CreateEventInput, PatchEventInput } from './event.schema.ts'
+import type { CreateEventInput, EventPeriodQuery, PatchEventInput } from './event.schema.ts'
 
 /** A resolved participant projection embedded in an event response. */
 export interface ParticipantSummary {
@@ -234,6 +234,28 @@ export async function toEventPayloads(events: readonly EventLike[]): Promise<Eve
 }
 
 /**
+ * `GET /api/events?from&to` (specs/event-api/spec.md, "Calendar reads use
+ * an exact bounded route"). An event overlaps the requested half-open
+ * period exactly when `startAt < to AND endAt > from` — the filter below
+ * mirrors that condition directly, so a boundary-touching event (`startAt
+ * === to` or `endAt === from`) is excluded rather than included.
+ * `eventPeriodQuerySchema` (validated in event.controller.ts, Stage 6) has
+ * already rejected a missing or non-increasing from/to pair before this
+ * function is ever called, so there is no persistence access for an
+ * invalid period.
+ */
+export async function listEventsByPeriod(period: EventPeriodQuery): Promise<EventPayload[]> {
+  const events = await EventModel.find({
+    startAt: { $lt: period.to },
+    endAt: { $gt: period.from },
+  })
+    .select('title startAt endAt attendeeIds hostIds')
+    .lean()
+
+  return toEventPayloads(events)
+}
+
+/**
  * `POST /api/events` (specs/event-api/spec.md, "Events can be created").
  * Constructs and saves a new document (design.md D4) after the shared span
  * check and full participant validation both pass — create treats every
@@ -329,4 +351,23 @@ export async function patchEvent(id: string, patch: PatchEventInput): Promise<Ev
 
   const [payload] = await toEventPayloads([event])
   return payload
+}
+
+/**
+ * `DELETE /api/events/:id` (specs/event-api/spec.md, "Events can be
+ * deleted"). A plain existence-checked delete: unlike create/PATCH, a
+ * delete carries no span or participant invariant to enforce, so there is
+ * no document round-trip to make here — design.md D4's load-merge-save
+ * requirement constrains the invariant-bearing write paths, not this one.
+ *
+ * `id` is assumed to already be a well-formed identifier — the "Malformed
+ * event identifier" 400 case is `eventIdParamsSchema`'s responsibility at
+ * the HTTP boundary (Stage 6), mirroring patchEvent's contract above.
+ */
+export async function deleteEvent(id: string): Promise<void> {
+  const deleted = await EventModel.findByIdAndDelete(id)
+
+  if (!deleted) {
+    throw new HttpError('NOT_FOUND', 'Event not found.')
+  }
 }
