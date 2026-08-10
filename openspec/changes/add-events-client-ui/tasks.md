@@ -6,12 +6,12 @@
 
 ## 1. Foundation
 
-- [ ] 1.1 Add `zustand` to the client with `pnpm --filter client add zustand`, and commit the updated `client/package.json` and `pnpm-lock.yaml`
-- [ ] 1.2 Remove `@tanstack/react-query` from `client/package.json`, delete `client/src/app/query-client.ts`, and drop `QueryClientProvider` from `client/src/main.tsx`
-- [ ] 1.3 Create the FSD layer directories `src/pages/`, `src/features/`, and `src/shared/` with the segment structure from design.md D1, each slice exposing an `index.ts` public API
-- [ ] 1.4 Define the global style layer in `client/src/index.css`: a Tailwind v4 `@theme` block with color, spacing, radius, and typography tokens, plus a base layer covering box sizing, body background and text color, and focus-visible treatment
-- [ ] 1.5 Create the axios instance in `src/shared/api` with `baseURL` from `import.meta.env.VITE_API_BASE_URL` defaulting to `http://localhost:3000/api`, and commit `client/.env.example` documenting that variable and the `CORS_ORIGIN` it must agree with
-- [ ] 1.6 Add the response interceptor that normalises every failure into one internal error shape carrying the server's `code`, or a transport marker when no error envelope is present
+- [x] 1.1 Add `zustand` to the client with `pnpm --filter client add zustand`, and commit the updated `client/package.json` and `pnpm-lock.yaml`
+- [x] 1.2 Remove `@tanstack/react-query` from `client/package.json`, delete `client/src/app/query-client.ts`, and drop `QueryClientProvider` from `client/src/main.tsx`
+- [x] 1.3 Create the FSD layer directories `src/pages/`, `src/features/`, and `src/shared/` with the segment structure from design.md D1, each slice exposing an `index.ts` public API
+- [x] 1.4 Define the global style layer in `client/src/index.css`: a Tailwind v4 `@theme` block with color, spacing, radius, and typography tokens, plus a base layer covering box sizing, body background and text color, and focus-visible treatment
+- [x] 1.5 Create the axios instance in `src/shared/api` with `baseURL` from `import.meta.env.VITE_API_BASE_URL` defaulting to `http://localhost:3000/api`, and commit `client/.env.example` documenting that variable and the `CORS_ORIGIN` it must agree with
+- [x] 1.6 Add the response interceptor that normalises every failure into one internal error shape carrying the server's `code`, or a transport marker when no error envelope is present
 
 **Validation:**
 
