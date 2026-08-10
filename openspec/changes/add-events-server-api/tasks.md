@@ -92,14 +92,14 @@
 
 ## 5. Implement event persistence and domain rules
 
-- [ ] 5.1 Add an event model explicitly bound to `events` with `title`, `startAt`, `endAt`, `attendeeIds`, `hostIds`, nullable `createdByUserId`, and nullable `updatedByUserId`, plus the `{ startAt: 1, endAt: 1 }` index.
-- [ ] 5.2 Add schemas for `from`/`to`, create, partial PATCH, and id params. Parse full ISO instants with `z.iso.datetime({ offset: true })`; reject date-only and zone-less values; trim non-empty titles; strip client-supplied audit fields.
-- [ ] 5.3 Add one shared service function for the primary `endAt > startAt` check and call it with the complete candidate state from both create and PATCH. Add a document validation hook as a persistence backstop.
-- [ ] 5.4 Implement create with document `save()` and PATCH as load, merge only supplied fields, validate the merged candidate, then `save()`; an omitted participant field remains unchanged and an explicitly empty array clears that role.
-- [ ] 5.5 De-duplicate participant ids and batch-resolve each supplied role. On create validate every id as new; on PATCH require existence, active status, and host eligibility only for ids newly added relative to the stored role, while allowing retained inactive or newly ineligible assignments to remain and be removed.
-- [ ] 5.6 Complete participant validation before mutating the loaded event so a rejected write leaves storage unchanged. Resolve attendees only from contacts and hosts only from employees.
-- [ ] 5.7 Ignore client audit values, persist both audit fields as null, serialize dates with `toISOString()`, batch-resolve participant projections on reads, and omit dangling references without failing the event.
-- [ ] 5.8 Add service and persistence tests for zero or inverted spans on both write paths, one-sided boundary patches, omitted and empty participant arrays, duplicate ids, unknown ids, wrong-role ids, inactive new ids, ineligible new hosts, retained historical assignments, removal of historical assignments, dangling references, forged audit values, and atomic failed writes.
+- [x] 5.1 Add an event model explicitly bound to `events` with `title`, `startAt`, `endAt`, `attendeeIds`, `hostIds`, nullable `createdByUserId`, and nullable `updatedByUserId`, plus the `{ startAt: 1, endAt: 1 }` index.
+- [x] 5.2 Add schemas for `from`/`to`, create, partial PATCH, and id params. Parse full ISO instants with `z.iso.datetime({ offset: true })`; reject date-only and zone-less values; trim non-empty titles; strip client-supplied audit fields.
+- [x] 5.3 Add one shared service function for the primary `endAt > startAt` check and call it with the complete candidate state from both create and PATCH. Add a document validation hook as a persistence backstop.
+- [x] 5.4 Implement create with document `save()` and PATCH as load, merge only supplied fields, validate the merged candidate, then `save()`; an omitted participant field remains unchanged and an explicitly empty array clears that role.
+- [x] 5.5 De-duplicate participant ids and batch-resolve each supplied role. On create validate every id as new; on PATCH require existence, active status, and host eligibility only for ids newly added relative to the stored role, while allowing retained inactive or newly ineligible assignments to remain and be removed.
+- [x] 5.6 Complete participant validation before mutating the loaded event so a rejected write leaves storage unchanged. Resolve attendees only from contacts and hosts only from employees.
+- [x] 5.7 Ignore client audit values, persist both audit fields as null, serialize dates with `toISOString()`, batch-resolve participant projections on reads, and omit dangling references without failing the event.
+- [x] 5.8 Add service and persistence tests for zero or inverted spans on both write paths, one-sided boundary patches, omitted and empty participant arrays, duplicate ids, unknown ids, wrong-role ids, inactive new ids, ineligible new hosts, retained historical assignments, removal of historical assignments, dangling references, forged audit values, and atomic failed writes.
 
 **Depends on:** Stages 2 and 3
 
