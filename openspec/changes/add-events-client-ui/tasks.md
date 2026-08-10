@@ -30,11 +30,11 @@
 
 ## 2. App shell and routing
 
-- [ ] 2.1 Build the layout shell in `src/app`: a persistent left vertical navigation with the Calendar, Analytics, and Users entries, and a routed outlet for page content
-- [ ] 2.2 Style the active navigation entry distinctly, driven by the current location
-- [ ] 2.3 Define the routes — `/events` for the calendar, `/analytics`, `/users`, a redirect from `/` to `/events`, and a catch-all route
-- [ ] 2.4 Create the Analytics and Users stub pages: identifying placeholder content, no API access
-- [ ] 2.5 Create the not-found page, rendered inside the shell with a link back to `/events`
+- [x] 2.1 Build the layout shell in `src/app`: a persistent left vertical navigation with the Calendar, Analytics, and Users entries, and a routed outlet for page content
+- [x] 2.2 Style the active navigation entry distinctly, driven by the current location
+- [x] 2.3 Define the routes — `/events` for the calendar, `/analytics`, `/users`, a redirect from `/` to `/events`, and a catch-all route
+- [x] 2.4 Create the Analytics and Users stub pages: identifying placeholder content, no API access
+- [x] 2.5 Create the not-found page, rendered inside the shell with a link back to `/events`
 
 **Validation:**
 
