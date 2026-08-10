@@ -72,11 +72,11 @@
 
 ## 4. Implement the read-only directory API
 
-- [ ] 4.1 Add directory query schemas accepting only `search` and `status` for contacts, plus `canHostEvents` for employees; cap `search` at 100 characters and reject unknown query keys such as `size` or `limit`.
-- [ ] 4.2 Add directory services that treat search text literally, match `firstName` or `lastName` case-insensitively, default status to `active`, cap results at 50, and order by `lastName`, `firstName`, then `_id`.
-- [ ] 4.3 Add controllers and routes for exactly `GET /api/contacts` and `GET /api/employees`, returning `{ contacts: [...] }` and `{ employees: [...] }` with only the fields specified for each projection.
-- [ ] 4.4 Mount the directory router under `/api` above the terminal handlers and add no directory write route.
-- [ ] 4.5 Add integration tests for exact wrappers and projections, active-by-default behavior, explicit inactive selection, employee eligibility filtering, deterministic tie ordering, the 50-result cap, literal metacharacter search, the 100-character boundary, rejected unknown query keys, and 404 responses for attempted writes.
+- [x] 4.1 Add directory query schemas accepting only `search` and `status` for contacts, plus `canHostEvents` for employees; cap `search` at 100 characters and reject unknown query keys such as `size` or `limit`.
+- [x] 4.2 Add directory services that treat search text literally, match `firstName` or `lastName` case-insensitively, default status to `active`, cap results at 50, and order by `lastName`, `firstName`, then `_id`.
+- [x] 4.3 Add controllers and routes for exactly `GET /api/contacts` and `GET /api/employees`, returning `{ contacts: [...] }` and `{ employees: [...] }` with only the fields specified for each projection.
+- [x] 4.4 Mount the directory router under `/api` above the terminal handlers and add no directory write route.
+- [x] 4.5 Add integration tests for exact wrappers and projections, active-by-default behavior, explicit inactive selection, employee eligibility filtering, deterministic tie ordering, the 50-result cap, literal metacharacter search, the 100-character boundary, rejected unknown query keys, and 404 responses for attempted writes.
 
 **Depends on:** Stages 2 and 3
 

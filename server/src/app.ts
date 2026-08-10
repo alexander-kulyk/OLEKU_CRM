@@ -5,6 +5,7 @@ import morgan from 'morgan'
 import { env } from './shared/config/env.ts'
 import { notFoundHandler } from './shared/http/not-found-handler.ts'
 import { errorMiddleware } from './shared/http/error-middleware.ts'
+import { directoryRouter } from './modules/directory/directory.routes.ts'
 
 export function createApp() {
   const app = express()
@@ -18,6 +19,8 @@ export function createApp() {
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' })
   })
+
+  app.use('/api', directoryRouter)
 
   // Both terminal handlers stay last: mount every feature router above
   // this point (see specs/api-foundation/spec.md, "Defined routes precede
