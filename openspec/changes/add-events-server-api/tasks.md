@@ -49,11 +49,11 @@
 
 ## 3. Add directory persistence and the local-only seed
 
-- [ ] 3.1 Add a contact model explicitly bound to `contacts` with `firstName`, `lastName`, `email`, and closed `active | inactive` status values defaulting to `active`.
-- [ ] 3.2 Add an employee model explicitly bound to `employees` with the contact fields plus `position`, `department`, and `canHostEvents` defaulting to `false`; use erasable TypeScript and do not add a model for `users`.
-- [ ] 3.3 Add `{ status: 1, lastName: 1, firstName: 1, _id: 1 }` indexes to both directory models and do not add a unique email index.
-- [ ] 3.4 Add an explicit seed command that upserts a fixed directory dataset by email, includes inactive and ineligible examples, never touches `events` or `users`, and refuses every MongoDB URI whose host is not loopback.
-- [ ] 3.5 Add tests that run the seed twice against the in-memory database, compare the resulting records and counts, and prove that a non-loopback URI is rejected before connecting or writing.
+- [x] 3.1 Add a contact model explicitly bound to `contacts` with `firstName`, `lastName`, `email`, and closed `active | inactive` status values defaulting to `active`.
+- [x] 3.2 Add an employee model explicitly bound to `employees` with the contact fields plus `position`, `department`, and `canHostEvents` defaulting to `false`; use erasable TypeScript and do not add a model for `users`.
+- [x] 3.3 Add `{ status: 1, lastName: 1, firstName: 1, _id: 1 }` indexes to both directory models and do not add a unique email index.
+- [x] 3.4 Add an explicit seed command that upserts a fixed directory dataset by email, includes inactive and ineligible examples, never touches `events` or `users`, and refuses every MongoDB URI whose host is not loopback.
+- [x] 3.5 Add tests that run the seed twice against the in-memory database, compare the resulting records and counts, and prove that a non-loopback URI is rejected before connecting or writing.
 
 **Depends on:** Stage 1
 

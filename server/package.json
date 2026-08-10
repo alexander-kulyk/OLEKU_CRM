@@ -10,7 +10,8 @@
     "dev": "node --watch src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "test": "node --test src/test/*.test.ts"
+    "test": "node --test src/test/*.test.ts",
+    "seed": "node src/modules/directory/seed.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",
