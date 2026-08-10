@@ -76,13 +76,13 @@
 
 ## 4. Calendar surface
 
-- [ ] 4.1 Mount FullCalendar on the events page with `headerToolbar: false` and the `dayGrid`, `timeGrid`, and `interaction` plugins, mapping views to `dayGridMonth` / `timeGridWeek` / `timeGridDay`
-- [ ] 4.2 Build the custom toolbar matching the reference screenshot — prev/next chevrons and Today on the left, period title centred, Month/Week/Day segmented control on the right — driving the calendar through `ref.getApi()`
-- [ ] 4.3 Wire `datesSet` as the single read trigger, passing its `startStr`/`endStr` through unmodified as `from`/`to`
-- [ ] 4.4 Map domain events to the library's shape at the boundary (`startAt`→`start`, `endAt`→`end`, remainder in `extendedProps`) and render them in all three views
-- [ ] 4.5 Add the loading indication and the failure state with a retry action for the period read
-- [ ] 4.6 Wire `dateClick` and `select`/`selectable` to open the dialog in Create mode with the date prefilled, plus the start time in week and day views
-- [ ] 4.7 Wire `eventClick` to open the dialog in Edit mode for the selected event
+- [x] 4.1 Mount FullCalendar on the events page with `headerToolbar: false` and the `dayGrid`, `timeGrid`, and `interaction` plugins, mapping views to `dayGridMonth` / `timeGridWeek` / `timeGridDay`
+- [x] 4.2 Build the custom toolbar matching the reference screenshot — prev/next chevrons and Today on the left, period title centred, Month/Week/Day segmented control on the right — driving the calendar through `ref.getApi()`
+- [x] 4.3 Wire `datesSet` as the single read trigger, passing its `startStr`/`endStr` through unmodified as `from`/`to`
+- [x] 4.4 Map domain events to the library's shape at the boundary (`startAt`→`start`, `endAt`→`end`, remainder in `extendedProps`) and render them in all three views
+- [x] 4.5 Add the loading indication and the failure state with a retry action for the period read
+- [x] 4.6 Wire `dateClick` and `select`/`selectable` to open the dialog in Create mode with the date prefilled, plus the start time in week and day views
+- [x] 4.7 Wire `eventClick` to open the dialog in Edit mode for the selected event
 
 **Validation:**
 
