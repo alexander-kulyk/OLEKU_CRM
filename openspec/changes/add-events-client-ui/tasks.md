@@ -53,12 +53,12 @@
 
 ## 3. Event data layer
 
-- [ ] 3.1 Define the client-side event and participant types matching the shipped response shape (`id`, `title`, `startAt`, `endAt`, `attendees[]`, `hosts[]` with `id`/`firstName`/`lastName`/`fullName`)
-- [ ] 3.2 Implement the event API functions in `src/shared/api` — period read, create, update, delete — assembling the read query with exactly `from` and `to` in one place that nothing downstream can append to
-- [ ] 3.3 Create the zustand store holding calendar UI state (active view, focused date, dialog target) and event data state (active period, events, load status, error), per design.md D2
-- [ ] 3.4 Implement the period read action with the stale-response guard: record the period each read was issued for and apply the response only if that period is still active
-- [ ] 3.5 Implement the post-mutation refresh — every successful create, update, and delete re-reads the currently active period rather than splicing the local array
-- [ ] 3.6 Implement the `(operation, code)` error-copy mapping, with a per-operation default for unmapped codes; the server's `message` is never rendered
+- [x] 3.1 Define the client-side event and participant types matching the shipped response shape (`id`, `title`, `startAt`, `endAt`, `attendees[]`, `hosts[]` with `id`/`firstName`/`lastName`/`fullName`)
+- [x] 3.2 Implement the event API functions in `src/shared/api` — period read, create, update, delete — assembling the read query with exactly `from` and `to` in one place that nothing downstream can append to
+- [x] 3.3 Create the zustand store holding calendar UI state (active view, focused date, dialog target) and event data state (active period, events, load status, error), per design.md D2
+- [x] 3.4 Implement the period read action with the stale-response guard: record the period each read was issued for and apply the response only if that period is still active
+- [x] 3.5 Implement the post-mutation refresh — every successful create, update, and delete re-reads the currently active period rather than splicing the local array
+- [x] 3.6 Implement the `(operation, code)` error-copy mapping, with a per-operation default for unmapped codes; the server's `message` is never rendered
 
 **Validation:**
 

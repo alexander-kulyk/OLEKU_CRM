@@ -86,3 +86,16 @@ export function isApiError(value: unknown): value is ApiError {
     typeof (value as { code: unknown }).code === 'string'
   )
 }
+
+/**
+ * Reads the {@link ApiErrorCode} off a value caught downstream of
+ * `httpClient` — whose interceptor has already normalised every rejection
+ * to an {@link ApiError} via {@link toApiError}. Callers that only have the
+ * caught value (never the original axios error) use this instead of
+ * re-running {@link toApiError}, which would misclassify an already
+ * normalised {@link ApiError} as {@link TRANSPORT_ERROR_CODE}. Anything
+ * unrecognised still falls back to {@link TRANSPORT_ERROR_CODE}.
+ */
+export function getApiErrorCode(error: unknown): ApiErrorCode {
+  return isApiError(error) ? error.code : TRANSPORT_ERROR_CODE
+}
