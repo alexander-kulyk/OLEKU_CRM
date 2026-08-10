@@ -138,10 +138,10 @@
 
 ## 7. Run the final change gate
 
-- [ ] 7.1 Review the implementation against proposal.md, design.md, and all three delta specs, and record the evidence for each Stage in the verifier report without modifying the planning artifacts.
-- [ ] 7.2 Confirm all relative source imports use `.ts`, all feature files remain under `server/src/modules/`, environment access remains in `server/src/shared/config/env.ts`, routers precede the terminal handlers, and no model or write path targets `users`.
-- [ ] 7.3 Confirm the implementation changed only the server package and the workspace lockfile; do not implement client mapping, authentication, recurrence, concurrency control, or future time-zone policy.
-- [ ] 7.4 Run the complete dependency, test, and build gates from the repository root and retain their outputs in the verifier report.
+- [x] 7.1 Review the implementation against proposal.md, design.md, and all three delta specs, and record the evidence for each Stage in the verifier report without modifying the planning artifacts.
+- [x] 7.2 Confirm all relative source imports use `.ts`, all feature files remain under `server/src/modules/`, environment access remains in `server/src/shared/config/env.ts`, routers precede the terminal handlers, and no model or write path targets `users`.
+- [x] 7.3 Confirm the implementation changed only the server package and the workspace lockfile; do not implement client mapping, authentication, recurrence, concurrency control, or future time-zone policy.
+- [x] 7.4 Run the complete dependency, test, and build gates from the repository root and retain their outputs in the verifier report.
 
 **Depends on:** Stage 6
 
