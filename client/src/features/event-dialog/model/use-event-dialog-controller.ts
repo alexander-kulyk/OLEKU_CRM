@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { createZodResolver, localDateTimeToIsoInstant } from '../../../shared/lib'
 import { useEventStore } from '../../../shared/model'
+import type { EventParticipant } from '../../../shared/api'
 import { buildEventDialogInitialData } from '../lib/build-event-dialog-initial-data'
 import { eventDialogFormSchema } from '../lib/event-dialog-schema'
 import type { EventDialogFormValues, OpenDialogTarget } from '../lib/event-dialog-schema'
@@ -38,6 +39,7 @@ export function useEventDialogController({ target }: UseEventDialogControllerPar
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<EventDialogFormValues>({
     resolver: createZodResolver(eventDialogFormSchema),
@@ -64,6 +66,43 @@ export function useEventDialogController({ target }: UseEventDialogControllerPar
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] = useState(false)
+
+  // One-time hydration of the assigned lists, the same rule as
+  // `initialData` itself (design.md D2). The full `EventParticipant`
+  // objects (not just ids) are kept here so `event-participants` can
+  // render names as chips; the id arrays that actually go on the wire live
+  // in the RHF form values (`attendeeIds`/`hostIds`) and are kept in
+  // lockstep via `setValue` below, so adding/removing a participant also
+  // marks the form dirty for the discard-confirmation gate (task 5.9)
+  // exactly like any other field edit.
+  const [attendees, setAttendees] = useState<readonly EventParticipant[]>(
+    initialData.initialAttendees,
+  )
+  const [hosts, setHosts] = useState<readonly EventParticipant[]>(initialData.initialHosts)
+
+  const handleAttendeesChange = useCallback(
+    (people: readonly EventParticipant[]) => {
+      setAttendees(people)
+      setValue(
+        'attendeeIds',
+        people.map((person) => person.id),
+        { shouldDirty: true },
+      )
+    },
+    [setValue],
+  )
+
+  const handleHostsChange = useCallback(
+    (people: readonly EventParticipant[]) => {
+      setHosts(people)
+      setValue(
+        'hostIds',
+        people.map((person) => person.id),
+        { shouldDirty: true },
+      )
+    },
+    [setValue],
+  )
 
   const handleCloseAttempt = useCallback(() => {
     if (mutation.isPending || isDeleteConfirmOpen || isDiscardConfirmOpen) {
@@ -102,14 +141,20 @@ export function useEventDialogController({ target }: UseEventDialogControllerPar
     const endAt = localDateTimeToIsoInstant(values.date, values.endTime)
     const title = values.name.trim()
 
-    // Never sends `attendeeIds`/`hostIds` — this dialog has no way to
-    // change participants yet (Stage 6). Omitted means "default to []" on
-    // create and "leave unchanged" on update (research EVID-004), which is
-    // exactly correct since nothing here ever touches them.
+    // ALWAYS sends the complete intended `attendeeIds`/`hostIds` —
+    // including an explicitly empty array, and including whichever role
+    // the user didn't touch — on both create and update, for every save.
+    // An omitted key means "leave unchanged" server-side (research
+    // EVID-004), so omitting either here would make a removal silently
+    // fail to persist (specs/event-participants/spec.md — "A save
+    // transmits the complete intended participant sets"; R-006).
+    const attendeeIds = values.attendeeIds
+    const hostIds = values.hostIds
+
     const succeeded = await mutation.run(() =>
       target.type === 'edit'
-        ? updateEvent(target.eventId, { title, startAt, endAt })
-        : createEvent({ title, startAt, endAt }),
+        ? updateEvent(target.eventId, { title, startAt, endAt, attendeeIds, hostIds })
+        : createEvent({ title, startAt, endAt, attendeeIds, hostIds }),
     )
 
     if (succeeded) {
@@ -146,6 +191,8 @@ export function useEventDialogController({ target }: UseEventDialogControllerPar
     values: {
       mode: target.type,
       sourceEvent: initialData.sourceEvent,
+      attendees,
+      hosts,
       register,
       errors,
       isFormValid,
@@ -162,6 +209,8 @@ export function useEventDialogController({ target }: UseEventDialogControllerPar
       handleDeleteRequested,
       handleDeleteCancelled,
       handleDeleteConfirmed,
+      handleAttendeesChange,
+      handleHostsChange,
     },
   }
 }

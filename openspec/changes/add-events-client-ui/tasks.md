@@ -143,14 +143,14 @@
 
 ## 6. Attendees and hosts
 
-- [ ] 6.1 Implement the directory API functions for contacts and employees, sending `search` to the service and `canHostEvents=true` for hosts, with the query assembled so no extra parameter can be appended
-- [ ] 6.2 Build the searchable multi-select control used by both sections, with server-resolved search and a no-matches indication
-- [ ] 6.3 Implement the explicit Add step: Add disabled while nothing is selected, moving the selection into the assigned list and clearing the selector
-- [ ] 6.4 Implement duplicate prevention, both against the existing assigned list and within a single Add
-- [ ] 6.5 Render assigned people as chips showing the name and a remove control, removing only that person and leaving the dialog open
-- [ ] 6.6 Send the complete intended `attendeeIds` and `hostIds` on every save, including `[]`, and including the role the user did not change
-- [ ] 6.7 Implement the empty-directory state — an indication that nobody is available to assign, with no error and no block on saving
-- [ ] 6.8 Implement the per-section load-failure state with a retry, leaving the event detail fields usable and populated
+- [x] 6.1 Implement the directory API functions for contacts and employees, sending `search` to the service and `canHostEvents=true` for hosts, with the query assembled so no extra parameter can be appended
+- [x] 6.2 Build the searchable multi-select control used by both sections, with server-resolved search and a no-matches indication
+- [x] 6.3 Implement the explicit Add step: Add disabled while nothing is selected, moving the selection into the assigned list and clearing the selector
+- [x] 6.4 Implement duplicate prevention, both against the existing assigned list and within a single Add
+- [x] 6.5 Render assigned people as chips showing the name and a remove control, removing only that person and leaving the dialog open
+- [x] 6.6 Send the complete intended `attendeeIds` and `hostIds` on every save, including `[]`, and including the role the user did not change
+- [x] 6.7 Implement the empty-directory state — an indication that nobody is available to assign, with no error and no block on saving
+- [x] 6.8 Implement the per-section load-failure state with a retry, leaving the event detail fields usable and populated
 
 **Validation:**
 

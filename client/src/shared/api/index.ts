@@ -23,3 +23,9 @@ export type {
 
 export { getEventErrorMessage } from './event-error-messages'
 export type { EventOperation } from './event-error-messages'
+
+export { readContacts, readHostEligibleEmployees } from './directory'
+export type { DirectorySearchQuery } from './directory'
+
+export { getDirectoryErrorMessage } from './directory-error-messages'
+export type { DirectoryOperation } from './directory-error-messages'

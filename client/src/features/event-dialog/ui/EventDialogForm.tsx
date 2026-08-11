@@ -1,10 +1,10 @@
 import type { FC } from 'react'
 import { ConfirmDialog, Modal } from '../../../shared/ui'
+import { ParticipantSection } from '../../event-participants'
 import { useEventDialogController } from '../model/use-event-dialog-controller'
 import type { OpenDialogTarget } from '../lib/event-dialog-schema'
 import { EventDetailsFields } from './EventDetailsFields'
 import { EventDialogActions } from './EventDialogActions'
-import { EventParticipantsSection } from './EventParticipantsSection'
 
 interface EventDialogFormProps {
   readonly target: OpenDialogTarget
@@ -49,8 +49,18 @@ export const EventDialogForm: FC<EventDialogFormProps> = ({ target }) => {
             isDisabled={values.isPending}
           />
 
-          <EventParticipantsSection title="Attendees" people={values.sourceEvent?.attendees} />
-          <EventParticipantsSection title="Hosts" people={values.sourceEvent?.hosts} />
+          <ParticipantSection
+            role="attendee"
+            assigned={values.attendees}
+            onAssignedChange={handlers.handleAttendeesChange}
+            isDisabled={values.isPending}
+          />
+          <ParticipantSection
+            role="host"
+            assigned={values.hosts}
+            onAssignedChange={handlers.handleHostsChange}
+            isDisabled={values.isPending}
+          />
 
           {values.error && (
             <p role="alert" className="text-sm text-danger">

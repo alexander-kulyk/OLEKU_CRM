@@ -19,6 +19,18 @@ function isValidCalendarDate(value: string): boolean {
  * end strictly later than start. One schema is the single source for both
  * the field-level messages (via the resolver) and the primary action's
  * enabled/disabled state (re-run directly against the live form values).
+ *
+ * `attendeeIds`/`hostIds` carry the event-participants feature's assigned
+ * lists as plain id arrays (never `undefined`, defaulting to `[]`) — they
+ * are not rendered as native inputs, but keeping them as real RHF fields
+ * (updated via `setValue` in `use-event-dialog-controller.ts`) means
+ * `formState.isDirty` reflects a participant add/remove exactly like any
+ * other field edit, so the discard-confirmation gate (task 5.9) also
+ * covers unsaved participant changes; and `submitForm` reads the complete
+ * intended sets straight off `values` on every save (specs/
+ * event-participants/spec.md — "A save transmits the complete intended
+ * participant sets"; R-006). Neither array is itself a validation
+ * constraint — attendees and hosts are optional.
  */
 export const eventDialogFormSchema = z
   .object({
@@ -35,6 +47,8 @@ export const eventDialogFormSchema = z
       .string()
       .min(1, 'End time is required.')
       .regex(TIME_PATTERN, 'Enter a valid end time.'),
+    attendeeIds: z.array(z.string()),
+    hostIds: z.array(z.string()),
   })
   .superRefine((values, context) => {
     const hasValidComponents =

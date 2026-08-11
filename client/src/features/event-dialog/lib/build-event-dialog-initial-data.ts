@@ -1,4 +1,4 @@
-import type { EventRecord } from '../../../shared/api'
+import type { EventParticipant, EventRecord } from '../../../shared/api'
 import {
   isoInstantToLocalDateInputValue,
   isoInstantToLocalTimeInputValue,
@@ -10,12 +10,23 @@ import type { EventDialogFormValues, OpenDialogTarget } from './event-dialog-sch
 export interface EventDialogInitialData {
   readonly formValues: EventDialogFormValues
   /**
-   * The Edit-mode source record, snapshotted once for read-only display in
-   * the Attendees/Hosts placeholders (Stage 6 replaces these with real
-   * selectors). `null` in Create mode. Never re-read after this snapshot —
-   * see {@link buildEventDialogInitialData}'s doc comment.
+   * The Edit-mode source record, snapshotted once. `null` in Create mode.
+   * Never re-read after this snapshot — see
+   * {@link buildEventDialogInitialData}'s doc comment.
    */
   readonly sourceEvent: EventRecord | null
+  /**
+   * The event's starting attendees/hosts, snapshotted once alongside
+   * `formValues` (design.md D2's "hydrate once" rule) — the seed for
+   * `event-participants`' assigned-list state in
+   * `use-event-dialog-controller.ts`. `[]` in Create mode;
+   * `sourceEvent.attendees`/`sourceEvent.hosts` in Edit mode. These carry
+   * full `EventParticipant` objects (for rendering names as chips); the id
+   * arrays that go on the wire are `formValues.attendeeIds`/`hostIds`,
+   * derived from the same source below.
+   */
+  readonly initialAttendees: readonly EventParticipant[]
+  readonly initialHosts: readonly EventParticipant[]
 }
 
 const BLANK_FORM_VALUES: EventDialogFormValues = {
@@ -23,6 +34,12 @@ const BLANK_FORM_VALUES: EventDialogFormValues = {
   date: '',
   startTime: '',
   endTime: '',
+  attendeeIds: [],
+  hostIds: [],
+}
+
+function toParticipantIds(people: readonly EventParticipant[]): string[] {
+  return people.map((person) => person.id)
 }
 
 /**
@@ -54,8 +71,12 @@ export function buildEventDialogInitialData(
           ? toLocalTimeInputValue(target.prefill.startTime)
           : '',
         endTime: '',
+        attendeeIds: [],
+        hostIds: [],
       },
       sourceEvent: null,
+      initialAttendees: [],
+      initialHosts: [],
     }
   }
 
@@ -65,7 +86,12 @@ export function buildEventDialogInitialData(
     // Defensive only: Edit mode is always entered by clicking an event that
     // was, by definition, in `events` at that moment. Falls back to a blank
     // form rather than throwing.
-    return { formValues: BLANK_FORM_VALUES, sourceEvent: null }
+    return {
+      formValues: BLANK_FORM_VALUES,
+      sourceEvent: null,
+      initialAttendees: [],
+      initialHosts: [],
+    }
   }
 
   return {
@@ -74,7 +100,11 @@ export function buildEventDialogInitialData(
       date: isoInstantToLocalDateInputValue(sourceEvent.startAt),
       startTime: isoInstantToLocalTimeInputValue(sourceEvent.startAt),
       endTime: isoInstantToLocalTimeInputValue(sourceEvent.endAt),
+      attendeeIds: toParticipantIds(sourceEvent.attendees),
+      hostIds: toParticipantIds(sourceEvent.hosts),
     },
     sourceEvent,
+    initialAttendees: sourceEvent.attendees,
+    initialHosts: sourceEvent.hosts,
   }
 }
