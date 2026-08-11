@@ -105,16 +105,16 @@
 
 ## 5. Event dialog
 
-- [ ] 5.1 Build the modal dialog shell with the four PRD sections — event details, attendees, hosts, actions — and mode-dependent actions (Create: Save only; Edit: save-changes plus Delete)
-- [ ] 5.2 Build the event details fields with react-hook-form and a zod resolver: text input for name, native `<input type="date">`, and native `<input type="time">` for start and end, styled with Tailwind
-- [ ] 5.3 Implement validation — non-blank name, valid date and times, end strictly later than start — with messages next to their fields and the primary action disabled while invalid
-- [ ] 5.4 Implement the local date/time ↔ instant conversion boundary in `src/shared/lib`, interpreting entered values in the browser's time zone
-- [ ] 5.5 Populate Edit mode from the selected event's list data, copied into form state on open
-- [ ] 5.6 Wire create, update, and delete through the store, closing the dialog only on success
-- [ ] 5.7 Implement submission states: loading on the triggering action, disabled form actions, and prevention of repeated submission
-- [ ] 5.8 Implement the delete confirmation with Cancel and Delete, and the failure path that keeps the event and the dialog
-- [ ] 5.9 Implement the discard confirmation for close icon, outside click, and Escape, offering Continue editing and Discard changes, shown only when the form is dirty
-- [ ] 5.10 Handle the case where the event open in Edit mode disappears from a refresh: keep the dialog and its values, surface the failure on save
+- [x] 5.1 Build the modal dialog shell with the four PRD sections — event details, attendees, hosts, actions — and mode-dependent actions (Create: Save only; Edit: save-changes plus Delete)
+- [x] 5.2 Build the event details fields with react-hook-form and a zod resolver: text input for name, native `<input type="date">`, and native `<input type="time">` for start and end, styled with Tailwind
+- [x] 5.3 Implement validation — non-blank name, valid date and times, end strictly later than start — with messages next to their fields and the primary action disabled while invalid
+- [x] 5.4 Implement the local date/time ↔ instant conversion boundary in `src/shared/lib`, interpreting entered values in the browser's time zone
+- [x] 5.5 Populate Edit mode from the selected event's list data, copied into form state on open
+- [x] 5.6 Wire create, update, and delete through the store, closing the dialog only on success
+- [x] 5.7 Implement submission states: loading on the triggering action, disabled form actions, and prevention of repeated submission
+- [x] 5.8 Implement the delete confirmation with Cancel and Delete, and the failure path that keeps the event and the dialog
+- [x] 5.9 Implement the discard confirmation for close icon, outside click, and Escape, offering Continue editing and Discard changes, shown only when the form is dirty
+- [x] 5.10 Handle the case where the event open in Edit mode disappears from a refresh: keep the dialog and its values, surface the failure on save
 
 **Validation:**
 
