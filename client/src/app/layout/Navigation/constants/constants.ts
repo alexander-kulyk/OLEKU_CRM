@@ -4,12 +4,12 @@
  * vertical navigation").
  */
 export interface INavigationItem {
-  readonly label: string
-  readonly to: string
+  readonly label: string;
+  readonly to: string;
 }
 
 export const NAVIGATION_ITEMS: readonly INavigationItem[] = [
   { label: 'Calendar', to: '/events' },
   { label: 'Analytics', to: '/analytics' },
   { label: 'Users', to: '/users' },
-]
+];

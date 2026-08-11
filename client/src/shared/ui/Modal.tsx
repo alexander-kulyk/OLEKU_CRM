@@ -52,7 +52,7 @@ export const Modal: FC<ModalProps> = ({ onRequestClose, labelledBy, children }) 
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className="flex max-h-full w-full max-w-lg flex-col gap-lg overflow-y-auto rounded-lg bg-surface p-lg shadow-lg"
+        className="flex max-h-full w-full max-w-modal flex-col gap-lg overflow-y-auto rounded-lg bg-surface p-lg shadow-lg"
       >
         {children}
       </div>

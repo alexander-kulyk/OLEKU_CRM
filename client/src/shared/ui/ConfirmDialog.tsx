@@ -42,7 +42,7 @@ export const ConfirmDialog: FC<ConfirmDialogProps> = ({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={TITLE_ID}
-        className="w-full max-w-sm rounded-lg bg-surface p-lg shadow-lg"
+        className="w-full max-w-dialog rounded-lg bg-surface p-lg shadow-lg"
       >
         <h3 id={TITLE_ID} className="text-lg font-semibold text-text">
           {title}

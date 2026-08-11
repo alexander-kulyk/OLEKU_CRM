@@ -38,7 +38,7 @@ export const CalendarStatusOverlay: FC<CalendarStatusOverlayProps> = ({
         role="alert"
         className="absolute inset-0 z-10 flex items-center justify-center bg-surface/90"
       >
-        <div className="flex max-w-sm flex-col items-center gap-sm rounded-lg border border-border bg-surface p-lg text-center shadow-lg">
+        <div className="flex max-w-dialog flex-col items-center gap-sm rounded-lg border border-border bg-surface p-lg text-center shadow-lg">
           <p className="text-text">{error ?? DEFAULT_ERROR_MESSAGE}</p>
           <button
             type="button"
