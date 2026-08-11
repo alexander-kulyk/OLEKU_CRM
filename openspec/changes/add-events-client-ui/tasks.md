@@ -174,11 +174,11 @@
 
 ## 7. Documentation and final verification
 
-- [ ] 7.1 Update `client/CLAUDE.md` — replace the TanStack Query and same-origin `/api` guidance with the zustand store, the axios base-URL strategy, and the Tailwind v4 styling rule, noting these override the shared skills for this package
-- [ ] 7.2 Update `client/AGENTS.md` the same way, keeping its verification and code-review sections consistent with what now exists
-- [ ] 7.3 Confirm no file under `.ai_toolkit/` was modified
-- [ ] 7.4 Run the full manual pass end to end against a running server, in month, week, and day view
-- [ ] 7.5 Record which spec scenarios were observed and which could not be exercised, with the reason
+- [x] 7.1 Update `client/CLAUDE.md` — replace the TanStack Query and same-origin `/api` guidance with the zustand store, the axios base-URL strategy, and the Tailwind v4 styling rule, noting these override the shared skills for this package
+- [x] 7.2 Update `client/AGENTS.md` the same way, keeping its verification and code-review sections consistent with what now exists
+- [x] 7.3 Confirm no file under `.ai_toolkit/` was modified
+- [x] 7.4 Run the full manual pass end to end against a running server, in month, week, and day view
+- [x] 7.5 Record which spec scenarios were observed and which could not be exercised, with the reason
 
 **Validation:**
 
