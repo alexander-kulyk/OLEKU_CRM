@@ -55,11 +55,22 @@ stages:
               pnpm --filter=server test
             displayName: 'Test server'
 
-          # Create a standalone production package
-          # containing server code + production node_modules
+          # Create a clean standalone production package.
+          # We intentionally use npm here instead of deploying pnpm's
+          # node_modules structure because Azure App Service repackages
+          # node_modules during startup.
           - script: |
-              pnpm --filter=server --prod deploy --legacy \
-                "$(Build.ArtifactStagingDirectory)/server"
+              mkdir -p "$(Build.ArtifactStagingDirectory)/server"
+
+              cp server/package.json \
+                "$(Build.ArtifactStagingDirectory)/server/package.json"
+
+              cp -R server/dist \
+                "$(Build.ArtifactStagingDirectory)/server/dist"
+
+              cd "$(Build.ArtifactStagingDirectory)/server"
+
+              npm install --omit=dev
             displayName: 'Prepare production server'
 
           # Make sure the compiled entrypoint really exists
