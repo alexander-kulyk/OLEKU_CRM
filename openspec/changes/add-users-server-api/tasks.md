@@ -135,10 +135,10 @@
 
 ## 7. Archive endpoint
 
-- [ ] 7.1 Implement archive as a conditional write scoped to `{ _id }` setting `archivedAt` to the current UTC timestamp only when it is not already set, leaving `status` and `version` untouched, and returning 204 with no body.
-- [ ] 7.2 Return 404 when no record matches `{ _id }`, and accept a request carrying no version.
-- [ ] 7.3 Add `server/src/test/users-archive.test.ts`: successful archive sets `archivedAt`, preserves `status`, keeps the record readable through the detail endpoint, and removes it from the list with `total` decreased by one; repeating the request returns 204 and the stored `archivedAt` retains its original value; an unknown id returns 404.
-- [ ] 7.4 Add a reference-survival assertion: after archiving, a record referencing that user still resolves to the stored document.
+- [x] 7.1 Implement archive as a conditional write scoped to `{ _id }` setting `archivedAt` to the current UTC timestamp only when it is not already set, leaving `status` and `version` untouched, and returning 204 with no body.
+- [x] 7.2 Return 404 when no record matches `{ _id }`, and accept a request carrying no version.
+- [x] 7.3 Add `server/src/test/users-archive.test.ts`: successful archive sets `archivedAt`, preserves `status`, keeps the record readable through the detail endpoint, and removes it from the list with `total` decreased by one; repeating the request returns 204 and the stored `archivedAt` retains its original value; an unknown id returns 404.
+- [x] 7.4 Add a reference-survival assertion: after archiving, a record referencing that user still resolves to the stored document.
 
 **Depends on:** Stage 6
 

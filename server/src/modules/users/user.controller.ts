@@ -5,7 +5,12 @@ import {
   userListQuerySchema,
   userPatchSchema,
 } from './user.schema.ts'
-import { getUser, listUsers, updateUser } from './user.service.ts'
+import {
+  archiveUser,
+  getUser,
+  listUsers,
+  updateUser,
+} from './user.service.ts'
 
 export const listUsersHandler: RequestHandler = async (req, res) => {
   const query = validate(userListQuerySchema, req.query)
@@ -27,4 +32,11 @@ export const updateUserHandler: RequestHandler = async (req, res) => {
   const user = await updateUser(userId, patch)
 
   res.json(user)
+}
+
+export const archiveUserHandler: RequestHandler = async (req, res) => {
+  const { userId } = validate(userIdParamsSchema, req.params)
+  await archiveUser(userId)
+
+  res.status(204).end()
 }

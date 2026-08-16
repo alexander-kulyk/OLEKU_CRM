@@ -213,6 +213,35 @@ export async function getUser(userId: string): Promise<UserDto> {
   return toUserDto(user)
 }
 
+export async function archiveUser(userId: string): Promise<void> {
+  const archivedAt = new Date()
+  const user = await UserModel.findOneAndUpdate(
+    { _id: userId },
+    [
+      {
+        $set: {
+          archivedAt: { $ifNull: ['$archivedAt', archivedAt] },
+        },
+      },
+    ],
+    {
+      // An archive changes only archivedAt. In particular, Mongoose must not
+      // refresh updatedAt on a repeated request and turn an idempotent write
+      // into a second observable side effect.
+      timestamps: false,
+      updatePipeline: true,
+      returnDocument: 'after',
+    },
+  )
+    .select('_id')
+    .lean<{ _id: unknown } | null>()
+    .exec()
+
+  if (user === null) {
+    throw new HttpError('NOT_FOUND', 'User not found.')
+  }
+}
+
 interface DuplicateKeyError {
   code: number
   keyPattern?: Record<string, number>
