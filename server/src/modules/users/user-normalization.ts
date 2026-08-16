@@ -47,7 +47,7 @@ function normalizeText(value: string): string {
   return value.trim().normalize('NFC')
 }
 
-function foldText(value: string): string {
+export function foldUserText(value: string): string {
   return normalizeText(value)
     .normalize('NFD')
     .replace(/\p{M}+/gu, '')
@@ -104,8 +104,8 @@ export function normalizeUserPatch(
   const firstName = normalizeText(patch.firstName ?? current.firstName)
   const lastName = normalizeText(patch.lastName ?? current.lastName)
   const email = normalizeText(patch.email ?? current.email)
-  const firstNameFolded = foldText(firstName)
-  const lastNameFolded = foldText(lastName)
+  const firstNameFolded = foldUserText(firstName)
+  const lastNameFolded = foldUserText(lastName)
   const { phone, phoneDigits } = normalizePhone(
     patch.phone === undefined ? current.phone : patch.phone,
   )

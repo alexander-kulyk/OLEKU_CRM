@@ -48,11 +48,11 @@
 
 ## 3. List endpoint
 
-- [ ] 3.1 Create `server/src/modules/users/user.schema.ts` list-query schema with `z.strictObject`: `page` (integer ≥ 1), `pageSize` (20 | 50 | 100, default 20), `search` (trimmed, length-bounded), `status` (comma-separated subset of the three operational values), and `sort` (`<field>:<asc|desc>` over first name, last name, status, last login).
-- [ ] 3.2 Implement the list service: filter on `archivedAt: null`, apply the status filter, build the search predicate as escaped literal `$regex` against the folded keys plus `phoneDigits` (never against display fields, and with no `i` flag), sort with the `_id` tiebreaker appended to every ordering, apply `.collation({ locale: 'uk', strength: 2 })` for name orderings, and run `countDocuments` on the same filter for an exact `total`.
-- [ ] 3.3 Implement the list mapper producing exactly the `UserListItemDto` field set, with dates as ISO 8601 UTC strings and no `version`.
-- [ ] 3.4 Create the controller and `user.routes.ts` for `GET /api/users`, and mount the router in `server/src/app.ts` above the 404 and error handlers.
-- [ ] 3.5 Add `server/src/test/users-list.test.ts` covering: default page shape and page size; `pageSize=37` and `pageSize=5000` rejected with 400; `page=0` and `page=-1` rejected; page beyond `totalPages` returning 200 with empty `items` and true `total`/`totalPages`; archived users absent from `items` and uncounted; unknown sort field rejected; unknown status value including `archived` rejected; multi-value status filter; search combined with a filter narrowing `total`.
+- [x] 3.1 Create `server/src/modules/users/user.schema.ts` list-query schema with `z.strictObject`: `page` (integer ≥ 1), `pageSize` (20 | 50 | 100, default 20), `search` (trimmed, length-bounded), `status` (comma-separated subset of the three operational values), and `sort` (`<field>:<asc|desc>` over first name, last name, status, last login).
+- [x] 3.2 Implement the list service: filter on `archivedAt: null`, apply the status filter, build the search predicate as escaped literal `$regex` against the folded keys plus `phoneDigits` (never against display fields, and with no `i` flag), sort with the `_id` tiebreaker appended to every ordering, apply `.collation({ locale: 'uk', strength: 2 })` for name orderings, and run `countDocuments` on the same filter for an exact `total`.
+- [x] 3.3 Implement the list mapper producing exactly the `UserListItemDto` field set, with dates as ISO 8601 UTC strings and no `version`.
+- [x] 3.4 Create the controller and `user.routes.ts` for `GET /api/users`, and mount the router in `server/src/app.ts` above the 404 and error handlers.
+- [x] 3.5 Add `server/src/test/users-list.test.ts` covering: default page shape and page size; `pageSize=37` and `pageSize=5000` rejected with 400; `page=0` and `page=-1` rejected; page beyond `totalPages` returning 200 with empty `items` and true `total`/`totalPages`; archived users absent from `items` and uncounted; unknown sort field rejected; unknown status value including `archived` rejected; multi-value status filter; search combined with a filter narrowing `total`.
 
 **Depends on:** Stage 2
 

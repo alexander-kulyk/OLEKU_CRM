@@ -58,7 +58,7 @@ const userSchema = new Schema<UserAttributes>(
     lastNameFolded: { type: String, required: true },
     fullNameFolded: { type: String, required: true },
     fullNameReversedFolded: { type: String, required: true },
-    phoneDigits: { type: String, required: true },
+    phoneDigits: { type: String, default: '' },
     statusRank: { type: Number, required: true },
     lastLoginRank: { type: Number, required: true },
   },
