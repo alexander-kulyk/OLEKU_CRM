@@ -1,15 +1,34 @@
-import { useEffect } from 'react';
-import type { FC, MouseEvent, ReactNode } from 'react';
+import React, { useEffect } from 'react';
+import { classNames } from '../lib';
 
-interface ModalProps {
+export interface IModalProps {
   readonly onRequestClose: () => void;
   readonly labelledBy?: string;
-  readonly children: ReactNode;
+  /** Widens or narrows the panel; defaults to the kit's standard dialog width. */
+  readonly className?: string;
+  readonly children: React.ReactNode;
 }
 
-export const Modal: FC<ModalProps> = ({
+const BACKDROP_CLASS_NAME =
+  'fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-lg backdrop-blur-[2px]';
+const PANEL_CLASS_NAME = [
+  'flex max-h-full w-full max-w-modal flex-col gap-xl overflow-y-auto',
+  'rounded-lg bg-surface p-xl shadow-overlay',
+].join(' ');
+
+/**
+ * The overlay every dialog sits on (assets/ui_kit/overlays and feedback.png):
+ * one elevation step above the page, a dimmed and lightly blurred backdrop,
+ * and a 14px-radius surface panel.
+ *
+ * Closing is always the caller's decision — Escape and a backdrop click both
+ * report up through `onRequestClose` rather than unmounting anything here, so
+ * a form with unsaved changes can intercept them.
+ */
+export const Modal: React.FC<IModalProps> = ({
   onRequestClose,
   labelledBy,
+  className,
   children,
 }) => {
   useEffect(() => {
@@ -26,7 +45,7 @@ export const Modal: FC<ModalProps> = ({
     };
   }, [onRequestClose]);
 
-  const handleOverlayMouseDown = (event: MouseEvent<HTMLDivElement>): void => {
+  const handleOverlayMouseDown = (event: React.MouseEvent<HTMLDivElement>): void => {
     // Only a click that both starts and ends on the backdrop itself counts
     // as "outside" — a click that lands on the panel never bubbles here
     // with `currentTarget` equal to `target`.
@@ -36,15 +55,12 @@ export const Modal: FC<ModalProps> = ({
   };
 
   return (
-    <div
-      className='fixed inset-0 z-50 flex items-center justify-center bg-text/50 p-md'
-      onMouseDown={handleOverlayMouseDown}
-    >
+    <div className={BACKDROP_CLASS_NAME} onMouseDown={handleOverlayMouseDown}>
       <div
         role='dialog'
         aria-modal='true'
         aria-labelledby={labelledBy}
-        className='flex max-h-full w-full max-w-modal flex-col gap-lg overflow-y-auto rounded-lg bg-surface p-lg shadow-lg'
+        className={classNames(PANEL_CLASS_NAME, className)}
       >
         {children}
       </div>

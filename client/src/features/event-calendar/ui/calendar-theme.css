@@ -1,0 +1,177 @@
+/* ==========================================================================
+   FullCalendar theming (assets/ui_kit/Calendar/{month,week,day}.png)
+
+   FullCalendar ships its own stylesheet and its own CSS variables. This file
+   is the single place those are mapped onto the design tokens in
+   `src/index.css` — no other module styles the grid. It is imported by
+   `EventCalendar.tsx`, so the theme travels with the feature.
+
+   Event blocks are NOT styled here: `CalendarEventContent` renders them from
+   the stored event color (`shared/config/event-colors.ts`), and the rules
+   below only strip FullCalendar's own event chrome out of the way.
+   ========================================================================== */
+
+.calendar-surface .fc {
+  --fc-border-color: var(--color-line);
+  --fc-page-bg-color: var(--color-surface);
+  --fc-neutral-bg-color: var(--color-surface-muted);
+  --fc-today-bg-color: color-mix(in srgb, var(--color-accent) 4%, transparent);
+
+  /* Events draw their own fill and rail, so FullCalendar's must be absent
+     rather than overridden — this keeps the reset free of `!important`. */
+  --fc-event-bg-color: transparent;
+  --fc-event-border-color: transparent;
+  --fc-event-text-color: var(--color-ink);
+  --fc-event-selected-overlay-color: transparent;
+
+  --fc-small-font-size: var(--text-label);
+
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--color-ink);
+}
+
+/* --- Frame -------------------------------------------------------------
+   The wrapping card already draws the outer border and radius, so the grid
+   must not draw a second one inside it. */
+.calendar-surface .fc .fc-scrollgrid {
+  border-left-width: 0;
+  border-top-width: 0;
+}
+
+.calendar-surface .fc .fc-scrollgrid-section > td {
+  border-right-width: 0;
+  border-bottom-width: 0;
+}
+
+/* --- Column headers ---------------------------------------------------- */
+.calendar-surface .fc .fc-col-header-cell {
+  background-color: var(--color-canvas);
+  border-bottom-color: var(--color-line);
+  vertical-align: middle;
+}
+
+.calendar-surface .fc .fc-col-header-cell-cushion {
+  display: block;
+  padding: var(--spacing-md) var(--spacing-md);
+  text-align: left;
+  text-decoration: none;
+  color: var(--color-ink-secondary);
+}
+
+.calendar-surface .fc .fc-timegrid-axis {
+  background-color: var(--color-canvas);
+}
+
+/* --- Time gutter ------------------------------------------------------- */
+/* Half-hour slots at 40px put ~10 working hours on screen at once, which is
+   the density the kit's week view shows. */
+.calendar-surface .fc .fc-timegrid-slot {
+  height: 2.5rem;
+}
+
+.calendar-surface .fc .fc-timegrid-slot-label-cushion {
+  padding: 0 var(--spacing-md);
+  font-size: var(--text-label);
+  font-weight: 400;
+  color: var(--color-ink-muted);
+}
+
+/* The half-hour rule is a hint, not a division. */
+.calendar-surface .fc .fc-timegrid-slot-minor {
+  border-top-style: dotted;
+  border-top-color: color-mix(in srgb, var(--color-line) 70%, transparent);
+}
+
+/* --- Month cells ------------------------------------------------------- */
+.calendar-surface .fc .fc-daygrid-day-frame {
+  padding: var(--spacing-xs);
+  min-height: 6.5rem;
+}
+
+.calendar-surface .fc .fc-daygrid-day-top {
+  flex-direction: row;
+}
+
+.calendar-surface .fc .fc-daygrid-day-number {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-label);
+  font-weight: var(--text-label--font-weight);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+/* Days spilling in from the neighbouring months read as background. */
+.calendar-surface .fc .fc-day-other {
+  background-color: var(--color-canvas);
+}
+
+.calendar-surface .fc .fc-day-other .fc-daygrid-day-number {
+  color: var(--color-ink-muted);
+}
+
+/* Today is marked once per view: a filled pill on the month grid, and the
+   date in the accent on the week/day header (see `dayHeaderContent`). */
+.calendar-surface .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  color: var(--color-surface);
+}
+
+.calendar-surface .fc .fc-daygrid-more-link {
+  margin-top: var(--spacing-xs);
+  padding: 0 var(--spacing-sm);
+  font-size: var(--text-label);
+  font-weight: var(--text-label--font-weight);
+  color: var(--color-ink-secondary);
+}
+
+.calendar-surface .fc .fc-daygrid-more-link:hover {
+  color: var(--color-accent);
+}
+
+/* --- Events ------------------------------------------------------------
+   Strip the default block chrome so `CalendarEventContent` is the only thing
+   painting an event. */
+.calendar-surface .fc .fc-event,
+.calendar-surface .fc .fc-event:hover {
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.calendar-surface .fc .fc-event .fc-event-main {
+  padding: 0;
+  color: inherit;
+}
+
+.calendar-surface .fc .fc-daygrid-dot-event {
+  padding: 0;
+  align-items: stretch;
+}
+
+.calendar-surface .fc .fc-daygrid-event-harness + .fc-daygrid-event-harness {
+  margin-top: 2px;
+}
+
+.calendar-surface .fc .fc-timegrid-event-harness > .fc-timegrid-event {
+  border-radius: var(--radius-sm);
+}
+
+.calendar-surface .fc .fc-event:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* In the day view the only column on screen is today, so tinting it says
+   nothing — the accented date in the header already does. */
+.calendar-surface .fc .fc-timeGridDay-view .fc-day-today {
+  background-color: transparent;
+}
+
+/* --- Slot selection ---------------------------------------------------- */
+.calendar-surface .fc .fc-highlight {
+  background-color: var(--color-accent-tint);
+}

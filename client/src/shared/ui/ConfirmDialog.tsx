@@ -1,6 +1,10 @@
-import type { FC } from 'react';
+import React from 'react';
+import { AlertCircleSVG, TrashSVG } from '../../../assets';
+import { classNames } from '../lib';
+import { Button } from './Button';
+import type { ButtonVariant } from './button-styles';
 
-interface ConfirmDialogProps {
+export interface IConfirmDialogProps {
   readonly title: string;
   readonly message: string;
   readonly confirmLabel: string;
@@ -14,8 +18,46 @@ interface ConfirmDialogProps {
 }
 
 const TITLE_ID = 'confirm-dialog-title';
+const MESSAGE_ID = 'confirm-dialog-message';
 
-export const ConfirmDialog: FC<ConfirmDialogProps> = ({
+/** The two tones a confirmation can take. */
+type ConfirmTone = 'danger' | 'accent';
+
+interface IConfirmToneConfig {
+  readonly icon: React.ReactNode;
+  readonly iconChipClassName: string;
+  readonly confirmVariant: ButtonVariant;
+}
+
+/**
+ * (tone) -> presentation. A table rather than a pair of ternaries, so the
+ * glyph, its chip and the confirm action can never end up describing
+ * different intents.
+ */
+const CONFIRM_TONE_CONFIG: Readonly<Record<ConfirmTone, IConfirmToneConfig>> = {
+  danger: {
+    icon: <TrashSVG className='size-5' />,
+    iconChipClassName: 'bg-danger-tint text-danger',
+    confirmVariant: 'dangerSolid',
+  },
+  accent: {
+    icon: <AlertCircleSVG className='size-5' />,
+    iconChipClassName: 'bg-accent-tint text-accent',
+    confirmVariant: 'primary',
+  },
+};
+
+/**
+ * The confirmation overlay (assets/ui_kit/overlays and feedback.png): an icon
+ * chip in the tone of the action, the question as the title, the consequence
+ * as body copy, and the two actions right-aligned with the confirm action
+ * carrying the emphasis.
+ *
+ * Deliberately does NOT wire Escape to either button: the outcome of a
+ * confirmation must be an explicit choice, and the dialog underneath owns
+ * what a dismissal means.
+ */
+export const ConfirmDialog: React.FC<IConfirmDialogProps> = ({
   title,
   message,
   confirmLabel,
@@ -25,39 +67,48 @@ export const ConfirmDialog: FC<ConfirmDialogProps> = ({
   isConfirming = false,
   isDangerous = false,
 }) => {
-  const confirmButtonClassName = isDangerous
-    ? 'rounded-md bg-danger px-md py-sm text-sm font-medium text-white hover:bg-danger/90 disabled:cursor-not-allowed disabled:opacity-60'
-    : 'rounded-md bg-primary-600 px-md py-sm text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60';
+  const tone = CONFIRM_TONE_CONFIG[isDangerous ? 'danger' : 'accent'];
 
   return (
-    <div className='fixed inset-0 z-[60] flex items-center justify-center bg-text/50 p-md'>
+    <div className='fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 p-lg backdrop-blur-[2px]'>
       <div
         role='alertdialog'
         aria-modal='true'
         aria-labelledby={TITLE_ID}
-        className='w-full max-w-dialog rounded-lg bg-surface p-lg shadow-lg'
+        aria-describedby={MESSAGE_ID}
+        className='flex w-full max-w-dialog flex-col gap-lg rounded-lg bg-surface p-xl shadow-overlay'
       >
-        <h3 id={TITLE_ID} className='text-lg font-semibold text-text'>
-          {title}
-        </h3>
-        <p className='mt-sm text-sm text-text-muted'>{message}</p>
-        <div className='mt-lg flex justify-end gap-sm'>
-          <button
-            type='button'
-            onClick={onCancel}
-            disabled={isConfirming}
-            className='rounded-md border border-border px-md py-sm text-sm font-medium text-text hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60'
-          >
+        <span
+          aria-hidden='true'
+          className={classNames(
+            'flex size-control-md items-center justify-center rounded-md',
+            tone.iconChipClassName,
+          )}
+        >
+          {tone.icon}
+        </span>
+
+        <div className='flex flex-col gap-sm'>
+          <h3 id={TITLE_ID} className='text-dialog-title text-ink'>
+            {title}
+          </h3>
+          <p id={MESSAGE_ID} className='text-body text-ink-secondary'>
+            {message}
+          </p>
+        </div>
+
+        <div className='flex justify-end gap-sm'>
+          <Button variant='secondary' onClick={onCancel} disabled={isConfirming}>
             {cancelLabel}
-          </button>
-          <button
-            type='button'
+          </Button>
+          <Button
+            variant={tone.confirmVariant}
             onClick={onConfirm}
-            disabled={isConfirming}
-            className={confirmButtonClassName}
+            isLoading={isConfirming}
+            loadingLabel='Working…'
           >
-            {isConfirming ? 'Working…' : confirmLabel}
-          </button>
+            {confirmLabel}
+          </Button>
         </div>
       </div>
     </div>

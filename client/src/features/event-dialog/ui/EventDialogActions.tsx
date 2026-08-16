@@ -1,53 +1,69 @@
-import type { FC } from 'react'
+import type React from 'react'
+import { TrashSVG } from '../../../../assets'
+import { Button } from '../../../shared/ui'
 
-interface EventDialogActionsProps {
+interface IEventDialogActionsProps {
   readonly mode: 'create' | 'edit'
   readonly isPrimaryDisabled: boolean
   readonly isSaving: boolean
+  readonly onCancel: () => void
   readonly onDeleteRequested: () => void
   readonly isDeleteDisabled: boolean
 }
-
-const PRIMARY_BUTTON_CLASS_NAME =
-  'rounded-md bg-primary-600 px-lg py-sm text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60'
-const DELETE_BUTTON_CLASS_NAME =
-  'rounded-md border border-danger px-md py-sm text-sm font-medium text-danger hover:bg-danger-muted disabled:cursor-not-allowed disabled:opacity-60'
 
 /**
  * The dialog's actions area (specs/event-management/spec.md — "Create and
  * Edit modes offer different actions"): Create mode offers only Save; Edit
  * mode offers Save changes and Delete, never Create's Save action alongside
  * them.
+ *
+ * Laid out as the kit specifies (assets/ui_kit/buttons.png): the destructive
+ * action separated at the far left, the single primary action at the far
+ * right with Cancel beside it, and the primary swapping to a spinner label
+ * while the request is in flight.
  */
-export const EventDialogActions: FC<EventDialogActionsProps> = ({
+export const EventDialogActions: React.FC<IEventDialogActionsProps> = ({
   mode,
   isPrimaryDisabled,
   isSaving,
+  onCancel,
   onDeleteRequested,
   isDeleteDisabled,
 }) => {
   const isEditMode = mode === 'edit'
-  const primaryLabel = isEditMode ? 'Save changes' : 'Save'
+  const primaryLabel = isEditMode ? 'Save changes' : 'Save event'
   const primaryBusyLabel = isEditMode ? 'Saving changes…' : 'Saving…'
 
   return (
-    <div className="flex items-center justify-between gap-md">
+    <div className='flex flex-wrap items-center justify-between gap-md border-t border-line pt-lg'>
       <div>
         {isEditMode && (
-          <button
-            type="button"
+          <Button
+            variant='danger'
             onClick={onDeleteRequested}
             disabled={isDeleteDisabled}
-            className={DELETE_BUTTON_CLASS_NAME}
+            leadingIcon={<TrashSVG className='size-4' />}
           >
             Delete
-          </button>
+          </Button>
         )}
       </div>
 
-      <button type="submit" disabled={isPrimaryDisabled} className={PRIMARY_BUTTON_CLASS_NAME}>
-        {isSaving ? primaryBusyLabel : primaryLabel}
-      </button>
+      <div className='flex items-center gap-sm'>
+        <Button variant='secondary' onClick={onCancel} disabled={isSaving}>
+          Cancel
+        </Button>
+
+        <Button
+          type='submit'
+          variant='primary'
+          disabled={isPrimaryDisabled}
+          isLoading={isSaving}
+          loadingLabel={primaryBusyLabel}
+        >
+          {primaryLabel}
+        </Button>
+      </div>
     </div>
   )
 }

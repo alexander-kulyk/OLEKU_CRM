@@ -1,9 +1,13 @@
-import type { ChangeEvent, FC } from 'react'
+import type React from 'react'
+import type { ChangeEvent } from 'react'
+import { AlertCircleSVG, SpinnerSVG } from '../../../../assets'
 import type { EventParticipant } from '../../../shared/api'
+import { Button, Input } from '../../../shared/ui'
 import type { DirectoryLoadStatus } from '../model/use-directory-options'
 
-interface ParticipantSelectorProps {
-  readonly ariaLabel: string
+interface IParticipantSelectorProps {
+  /** Doubles as the field's visible label — "Attendees" / "Hosts". */
+  readonly label: string
   readonly searchValue: string
   readonly onSearchChange: (value: string) => void
   readonly options: readonly EventParticipant[]
@@ -16,21 +20,22 @@ interface ParticipantSelectorProps {
   readonly isDisabled: boolean
 }
 
-const SEARCH_INPUT_CLASS_NAME =
-  'rounded-md border border-border bg-surface px-md py-sm text-sm text-text disabled:cursor-not-allowed disabled:opacity-60'
-const OPTION_LIST_CLASS_NAME =
-  'flex max-h-40 flex-col gap-xs overflow-y-auto rounded-md border border-border p-sm'
-const RETRY_BUTTON_CLASS_NAME =
-  'self-start rounded-md border border-border px-sm py-xs text-xs font-medium text-text hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60'
+const OPTION_LIST_CLASS_NAME = [
+  'flex max-h-44 flex-col gap-xs overflow-y-auto rounded-md',
+  'border border-line bg-surface p-xs shadow-rest',
+].join(' ')
+const OPTION_ROW_CLASS_NAME =
+  'flex cursor-pointer items-center gap-sm rounded-sm px-sm py-xs text-body text-ink hover:bg-surface-muted'
+const STATUS_TEXT_CLASS_NAME = 'flex items-center gap-sm text-label font-normal text-ink-muted'
 
-interface ParticipantOptionRowProps {
+interface IParticipantOptionRowProps {
   readonly person: EventParticipant
   readonly isChecked: boolean
   readonly onToggle: (personId: string) => void
   readonly isDisabled: boolean
 }
 
-const ParticipantOptionRow: FC<ParticipantOptionRowProps> = ({
+const ParticipantOptionRow: React.FC<IParticipantOptionRowProps> = ({
   person,
   isChecked,
   onToggle,
@@ -42,8 +47,14 @@ const ParticipantOptionRow: FC<ParticipantOptionRowProps> = ({
 
   return (
     <li>
-      <label className="flex items-center gap-sm text-sm text-text">
-        <input type="checkbox" checked={isChecked} onChange={handleChange} disabled={isDisabled} />
+      <label className={OPTION_ROW_CLASS_NAME}>
+        <input
+          type='checkbox'
+          checked={isChecked}
+          onChange={handleChange}
+          disabled={isDisabled}
+          className='size-4 shrink-0 accent-accent'
+        />
         {person.fullName}
       </label>
     </li>
@@ -53,17 +64,22 @@ const ParticipantOptionRow: FC<ParticipantOptionRowProps> = ({
 /**
  * The searchable multi-select control shared by the attendee and host
  * sections (specs/event-participants/spec.md — "Attendee and host
- * selectors"; task 6.2). Purely presentational: all state (search text,
- * pending selection, loaded options, load status) lives in
- * `useParticipantSection`/`useDirectoryOptions`; this component only
- * renders it and reports events up.
+ * selectors"). Purely presentational: all state (search text, pending
+ * selection, loaded options, load status) lives in
+ * `useParticipantSection`/`useDirectoryOptions`; this component only renders
+ * it and reports events up.
+ *
+ * The search field is the shared `Input` primitive, so this section is the
+ * same labelled control as every other field in the dialog — the shape the
+ * combobox-with-chips people picker (assets/ui_kit/fields.png) will take
+ * over from.
  *
  * The loading, error+retry, empty/no-matches, and populated-list branches
  * are separate `status`-driven code paths — a load failure is never
- * conflated with "the directory has no one to offer" (task 6.7, 6.8).
+ * conflated with "the directory has no one to offer".
  */
-export const ParticipantSelector: FC<ParticipantSelectorProps> = ({
-  ariaLabel,
+export const ParticipantSelector: React.FC<IParticipantSelectorProps> = ({
+  label,
   searchValue,
   onSearchChange,
   options,
@@ -80,37 +96,37 @@ export const ParticipantSelector: FC<ParticipantSelectorProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-xs">
-      <input
-        type="search"
+    <div className='flex flex-col gap-sm'>
+      <Input
+        type='search'
+        label={label}
         value={searchValue}
         onChange={handleSearchInputChange}
-        placeholder={`Search ${ariaLabel.toLowerCase()}…`}
-        aria-label={`Search ${ariaLabel}`}
+        placeholder='Search people…'
         disabled={isDisabled}
-        className={SEARCH_INPUT_CLASS_NAME}
       />
 
       {status === 'error' && (
-        <div className="flex flex-col items-start gap-xs">
-          <p role="alert" className="text-sm text-danger">
+        <div className='flex flex-col items-start gap-sm'>
+          <p role='alert' className='flex items-center gap-xs text-label font-normal text-danger'>
+            <AlertCircleSVG className='size-4 shrink-0' />
             {errorMessage}
           </p>
-          <button
-            type="button"
-            onClick={onRetry}
-            disabled={isDisabled}
-            className={RETRY_BUTTON_CLASS_NAME}
-          >
+          <Button size='sm' onClick={onRetry} disabled={isDisabled}>
             Retry
-          </button>
+          </Button>
         </div>
       )}
 
-      {status === 'loading' && <p className="text-sm text-text-muted">Loading…</p>}
+      {status === 'loading' && (
+        <p className={STATUS_TEXT_CLASS_NAME}>
+          <SpinnerSVG className='size-4 animate-spin' />
+          Loading…
+        </p>
+      )}
 
       {status === 'success' && options.length === 0 && (
-        <p className="text-sm text-text-muted">{emptyMessage}</p>
+        <p className={STATUS_TEXT_CLASS_NAME}>{emptyMessage}</p>
       )}
 
       {status === 'success' && options.length > 0 && (

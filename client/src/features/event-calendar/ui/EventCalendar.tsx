@@ -1,10 +1,16 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import type { FC } from 'react'
+import type React from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import type { DatesSetArg, DateSelectArg, EventClickArg } from '@fullcalendar/core'
+import type {
+  DatesSetArg,
+  DateSelectArg,
+  DayHeaderContentArg,
+  EventClickArg,
+  EventContentArg,
+} from '@fullcalendar/core'
 import type { DateClickArg } from '@fullcalendar/interaction'
 import { useEventStore } from '../../../shared/model'
 import type { CalendarView } from '../../../shared/model'
@@ -13,21 +19,55 @@ import {
   getCalendarViewFromFullCalendarViewType,
 } from '../lib/calendar-view-config'
 import { mapEventRecordsToCalendarEvents } from '../lib/map-events'
-import { CalendarToolbar } from './CalendarToolbar'
+import { CalendarDayHeaderContent } from './CalendarDayHeaderContent'
+import { CalendarEventContent } from './CalendarEventContent'
 import { CalendarStatusOverlay } from './CalendarStatusOverlay'
+import { CalendarToolbar } from './CalendarToolbar'
+import './calendar-theme.css'
+
+/**
+ * Presentation constants for the mounted grid (assets/ui_kit/Calendar):
+ * weeks start on Monday, the timed views open scrolled to the working day
+ * rather than to midnight, times read as 24-hour with an en-dash range, and
+ * a month cell shows three events before collapsing the rest behind a
+ * "+ more" link.
+ */
+const FIRST_DAY_OF_WEEK = 1
+const INITIAL_SCROLL_TIME = '07:00:00'
+const MONTH_CELL_MAX_EVENTS = 3
+const EVENT_TIME_FORMAT = {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+} as const
+/** The gutter reads `07:00`, not `7am` — same 24-hour clock as the blocks. */
+const SLOT_LABEL_FORMAT = EVENT_TIME_FORMAT
+const RANGE_SEPARATOR = ' – '
+
+function renderEventContent(arg: EventContentArg): React.ReactNode {
+  return <CalendarEventContent arg={arg} />
+}
+
+function renderDayHeaderContent(arg: DayHeaderContentArg): React.ReactNode {
+  return <CalendarDayHeaderContent arg={arg} />
+}
 
 /**
  * The calendar surface (specs/event-calendar/spec.md; design.md D6).
  * FullCalendar is mounted uncontrolled — `headerToolbar: false`, and the
- * custom `CalendarToolbar` below drives it imperatively through
+ * custom `CalendarToolbar` above drives it imperatively through
  * `calendarRef.current.getApi()`. `datesSet` is the single trigger that
  * reads events for the actually-rendered period and folds the resulting
  * view/focused date back into the store; the calendar's own date/view
  * cursor is never mirrored into a controlled prop pushed back down (that
  * would risk a render loop, since every programmatic change re-fires
  * `datesSet`).
+ *
+ * Styling lives in `calendar-theme.css` (the grid) and
+ * `CalendarEventContent` (the blocks) — nothing about either is expressed
+ * through FullCalendar's own color options.
  */
-export const EventCalendar: FC = () => {
+export const EventCalendar: React.FC = () => {
   const calendarRef = useRef<FullCalendar>(null)
   const [periodTitle, setPeriodTitle] = useState('')
 
@@ -71,6 +111,15 @@ export const EventCalendar: FC = () => {
     // — "Focused date survives a view change").
     api.changeView(CALENDAR_VIEW_CONFIG[view].fullCalendarViewName, api.getDate())
   }, [])
+
+  const handleCreate = useCallback(() => {
+    // The toolbar's action carries no slot of its own, so it prefills the
+    // date the calendar is currently focused on — the same shape a month
+    // cell click produces.
+    const focusedDate = calendarRef.current?.getApi().getDate() ?? new Date()
+
+    openCreateDialog({ date: focusedDate })
+  }, [openCreateDialog])
 
   const handleDatesSet = useCallback(
     (arg: DatesSetArg) => {
@@ -116,31 +165,49 @@ export const EventCalendar: FC = () => {
   )
 
   return (
-    <div className="flex flex-col gap-md">
+    <div className='calendar-surface flex h-full min-h-0 flex-col'>
       <CalendarToolbar
         activeView={activeView}
         title={periodTitle}
+        eventCount={events.length}
         onPrev={handlePrev}
         onNext={handleNext}
         onToday={handleToday}
         onChangeView={handleChangeView}
+        onCreate={handleCreate}
       />
 
-      <div className="relative rounded-lg border border-border bg-surface p-md">
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView={CALENDAR_VIEW_CONFIG.month.fullCalendarViewName}
-          headerToolbar={false}
-          selectable
-          events={calendarEvents}
-          datesSet={handleDatesSet}
-          dateClick={handleDateClick}
-          select={handleDateSelect}
-          eventClick={handleEventClick}
-        />
+      <div className='min-h-0 flex-1 p-xl'>
+        <div className='relative h-full overflow-hidden rounded-lg border border-line bg-surface shadow-rest'>
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView={CALENDAR_VIEW_CONFIG.month.fullCalendarViewName}
+            headerToolbar={false}
+            height='100%'
+            firstDay={FIRST_DAY_OF_WEEK}
+            allDaySlot={false}
+            scrollTime={INITIAL_SCROLL_TIME}
+            dayMaxEvents={MONTH_CELL_MAX_EVENTS}
+            eventTimeFormat={EVENT_TIME_FORMAT}
+            slotLabelFormat={SLOT_LABEL_FORMAT}
+            defaultRangeSeparator={RANGE_SEPARATOR}
+            selectable
+            events={calendarEvents}
+            eventContent={renderEventContent}
+            dayHeaderContent={renderDayHeaderContent}
+            datesSet={handleDatesSet}
+            dateClick={handleDateClick}
+            select={handleDateSelect}
+            eventClick={handleEventClick}
+          />
 
-        <CalendarStatusOverlay status={status} error={error} onRetry={refreshActivePeriod} />
+          <CalendarStatusOverlay
+            status={status}
+            error={error}
+            onRetry={refreshActivePeriod}
+          />
+        </div>
       </div>
     </div>
   )

@@ -8,3 +8,5 @@ export {
 } from './event-datetime'
 
 export { createZodResolver } from './create-zod-resolver'
+
+export { classNames } from './class-names'

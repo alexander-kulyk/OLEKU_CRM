@@ -1,20 +1,18 @@
-import type { FC } from 'react'
+import type React from 'react'
 import type { EventParticipant } from '../../../shared/api'
+import { Button } from '../../../shared/ui'
 import type { ParticipantRole } from '../model/participant-role-config'
 import { useParticipantSection } from '../model/use-participant-section'
 import { ParticipantChipList } from './ParticipantChipList'
 import { ParticipantSelector } from './ParticipantSelector'
 
-interface ParticipantSectionProps {
+interface IParticipantSectionProps {
   readonly role: ParticipantRole
   /** The event's currently assigned people for this role — form state owned by the caller (R-006). */
   readonly assigned: readonly EventParticipant[]
   readonly onAssignedChange: (people: readonly EventParticipant[]) => void
   readonly isDisabled?: boolean
 }
-
-const ADD_BUTTON_CLASS_NAME =
-  'self-start rounded-md bg-primary-600 px-md py-xs text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60'
 
 /**
  * The Attendees / Hosts section of the Event dialog
@@ -23,13 +21,17 @@ const ADD_BUTTON_CLASS_NAME =
  * chip list — every behavior lives in `useParticipantSection`, this
  * component is markup only.
  *
+ * The role name is the search field's own label rather than a separate
+ * heading above it, so the section reads as one labelled control in the
+ * dialog's field rhythm — the shape the people picker will replace.
+ *
  * `assigned`/`onAssignedChange` are controlled by the caller rather than
  * owned here, because the assigned list must survive into `event-dialog`'s
  * save payload (specs/event-participants/spec.md — "A save transmits the
  * complete intended participant sets"); this feature never persists
  * anything itself.
  */
-export const ParticipantSection: FC<ParticipantSectionProps> = ({
+export const ParticipantSection: React.FC<IParticipantSectionProps> = ({
   role,
   assigned,
   onAssignedChange,
@@ -48,11 +50,9 @@ export const ParticipantSection: FC<ParticipantSectionProps> = ({
   } = useParticipantSection({ role, assigned, onAssignedChange })
 
   return (
-    <section className="flex flex-col gap-sm rounded-md border border-border p-md">
-      <h3 className="text-sm font-semibold text-text">{title}</h3>
-
+    <section className='flex flex-col gap-sm'>
       <ParticipantSelector
-        ariaLabel={title}
+        label={title}
         searchValue={search}
         onSearchChange={handlers.handleSearchChange}
         options={availableOptions}
@@ -65,16 +65,20 @@ export const ParticipantSection: FC<ParticipantSectionProps> = ({
         isDisabled={isDisabled}
       />
 
-      <button
-        type="button"
+      <Button
+        size='sm'
         onClick={handlers.handleAdd}
         disabled={isAddDisabled || isDisabled}
-        className={ADD_BUTTON_CLASS_NAME}
+        className='self-start'
       >
         Add
-      </button>
+      </Button>
 
-      <ParticipantChipList people={assigned} onRemove={handlers.handleRemove} isDisabled={isDisabled} />
+      <ParticipantChipList
+        people={assigned}
+        onRemove={handlers.handleRemove}
+        isDisabled={isDisabled}
+      />
     </section>
   )
 }

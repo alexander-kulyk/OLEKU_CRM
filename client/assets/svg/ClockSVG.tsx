@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ISvgIconProps } from './types';
 
-export const CalendarSVG: React.FC<ISvgIconProps> = ({ className }) => (
+export const ClockSVG: React.FC<ISvgIconProps> = ({ className }) => (
   <svg
     xmlns='http://www.w3.org/2000/svg'
     width='24'
@@ -16,9 +16,7 @@ export const CalendarSVG: React.FC<ISvgIconProps> = ({ className }) => (
     focusable='false'
     className={className}
   >
-    <path d='M8 2v3' />
-    <path d='M16 2v3' />
-    <rect x='3' y='3' width='18' height='18' rx='2' />
-    <path d='M3 9h18' />
+    <circle cx='12' cy='12' r='10' />
+    <path d='M12 6v6l4 2' />
   </svg>
 );

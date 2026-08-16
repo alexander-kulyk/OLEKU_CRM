@@ -1,99 +1,74 @@
-import type { FC } from 'react'
+import type React from 'react'
 import type { FieldErrors, UseFormRegister } from 'react-hook-form'
+import { DatePicker, Input, TimePicker } from '../../../shared/ui'
 import type { EventDialogFormValues } from '../lib/event-dialog-schema'
 import { EventColorPicker } from './EventColorPicker'
 
-interface EventDetailsFieldsProps {
+interface IEventDetailsFieldsProps {
   readonly register: UseFormRegister<EventDialogFormValues>
   readonly errors: FieldErrors<EventDialogFormValues>
   readonly isDisabled: boolean
 }
 
-const LABEL_CLASS_NAME = 'text-sm font-medium text-text'
-const INPUT_CLASS_NAME =
-  'rounded-md border border-border bg-surface px-md py-sm text-sm text-text disabled:cursor-not-allowed disabled:opacity-60'
-const ERROR_CLASS_NAME = 'text-sm text-danger'
+const NAME_HINT = 'Shown to attendees in the portal.'
 
 /**
  * The event details section (specs/event-management/spec.md — "Event
  * detail fields"): name, date, start time, end time, all required, plus the
- * event's color. Native `<input type="date">` / `<input type="time">` per
- * design.md D5/D7 — no date-picker library. Each field's message renders
- * next to it, driven by `errors` from the form's zod resolver.
+ * event's color.
+ *
+ * Every control is a `shared/ui` primitive, so the label, hint, invalid
+ * treatment and 38px control height come from the design system rather than
+ * from class strings repeated per field. The date and time controls are
+ * still native inputs underneath (design.md D5/D7 — no date-picker
+ * library); `DatePicker`/`TimePicker` only supply the shell around them, and
+ * `register` passes straight through to the input, `ref` included.
  */
-export const EventDetailsFields: FC<EventDetailsFieldsProps> = ({
+export const EventDetailsFields: React.FC<IEventDetailsFieldsProps> = ({
   register,
   errors,
   isDisabled,
 }) => {
   return (
-    <fieldset disabled={isDisabled} className="flex flex-col gap-md">
-      <legend className="text-sm font-semibold text-text">Event details</legend>
+    <fieldset disabled={isDisabled} className='flex min-w-0 flex-col gap-lg'>
+      <legend className='sr-only'>Event details</legend>
 
-      <div className="flex flex-col gap-xs">
-        <label htmlFor="event-dialog-name" className={LABEL_CLASS_NAME}>
-          Event name
-        </label>
-        <input
-          id="event-dialog-name"
-          type="text"
+      <Input
+        id='event-dialog-name'
+        label='Event name'
+        hint={NAME_HINT}
+        placeholder='Mathematics lesson'
+        required
+        error={errors.name?.message}
+        {...register('name')}
+      />
+
+      <DatePicker
+        id='event-dialog-date'
+        label='Date'
+        required
+        error={errors.date?.message}
+        {...register('date')}
+      />
+
+      <div className='flex flex-wrap gap-md'>
+        <TimePicker
+          id='event-dialog-start-time'
+          label='Start time'
           required
-          aria-required="true"
-          aria-invalid={errors.name ? true : undefined}
-          className={INPUT_CLASS_NAME}
-          {...register('name')}
+          className='min-w-[10rem] flex-1'
+          error={errors.startTime?.message}
+          {...register('startTime')}
         />
-        {errors.name && <p className={ERROR_CLASS_NAME}>{errors.name.message}</p>}
-      </div>
 
-      <div className="flex flex-col gap-xs">
-        <label htmlFor="event-dialog-date" className={LABEL_CLASS_NAME}>
-          Date
-        </label>
-        <input
-          id="event-dialog-date"
-          type="date"
+        <TimePicker
+          id='event-dialog-end-time'
+          label='End time'
           required
-          aria-required="true"
-          aria-invalid={errors.date ? true : undefined}
-          className={INPUT_CLASS_NAME}
-          {...register('date')}
+          className='min-w-[10rem] flex-1'
+          error={errors.endTime?.message}
+          {...register('endTime')}
         />
-        {errors.date && <p className={ERROR_CLASS_NAME}>{errors.date.message}</p>}
-      </div>
-
-      <div className="flex gap-md">
-        <div className="flex flex-1 flex-col gap-xs">
-          <label htmlFor="event-dialog-start-time" className={LABEL_CLASS_NAME}>
-            Start time
-          </label>
-          <input
-            id="event-dialog-start-time"
-            type="time"
-            required
-            aria-required="true"
-            aria-invalid={errors.startTime ? true : undefined}
-            className={INPUT_CLASS_NAME}
-            {...register('startTime')}
-          />
-          {errors.startTime && <p className={ERROR_CLASS_NAME}>{errors.startTime.message}</p>}
-        </div>
-
-        <div className="flex flex-1 flex-col gap-xs">
-          <label htmlFor="event-dialog-end-time" className={LABEL_CLASS_NAME}>
-            End time
-          </label>
-          <input
-            id="event-dialog-end-time"
-            type="time"
-            required
-            aria-required="true"
-            aria-invalid={errors.endTime ? true : undefined}
-            className={INPUT_CLASS_NAME}
-            {...register('endTime')}
-          />
-          {errors.endTime && <p className={ERROR_CLASS_NAME}>{errors.endTime.message}</p>}
-        </div>
       </div>
 
       <EventColorPicker register={register} errorMessage={errors.color?.message} />

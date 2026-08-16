@@ -5,7 +5,7 @@ import {
   toLocalDateInputValue,
   toLocalTimeInputValue,
 } from '../../../shared/lib'
-import { DEFAULT_EVENT_COLOR } from '../config/event-colors'
+import { DEFAULT_EVENT_COLOR } from '../../../shared/config'
 import type { EventDialogFormValues, OpenDialogTarget } from './event-dialog-schema'
 
 export interface EventDialogInitialData {
