@@ -24,16 +24,17 @@ These instructions apply to everything under `server/` and extend the repository
   internal details in production.
 - Mount new routers before the catch-all 404 handler and the final error handler.
 - Keep connection setup and graceful shutdown in `server.ts`.
-- Use `contacts` for clients and `employees` for staff. Leave `users` for authentication;
-  do not attach CRM person data to it.
+- Use `contacts` for clients and `employees` for staff in the CRM people directory.
+  `users` holds account identity plus the account profile used to administer access.
 - When runtime behavior genuinely varies by a stable key, consult
   `../.ai_toolkit/skills/strategy-registries`; prefer direct code for simple closed branches.
 
 ## Verification
 
 - Run `pnpm --filter server build` after server changes.
-- There is currently no server lint or test script. If a change introduces one, document
-  and run it without replacing the build gate.
+- Run `pnpm --filter server test` (`node --test src/test/*.test.ts`) after behavioral
+  server changes. There is currently no server lint script; the test gate does not replace
+  the build gate.
 
 ## Code review rules
 

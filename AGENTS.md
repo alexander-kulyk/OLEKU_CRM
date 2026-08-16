@@ -34,8 +34,9 @@ Run commands from the repository root:
 - `pnpm build:client` — type-check and build the client.
 - `pnpm build:server` — type-check the server.
 
-There are currently no repository lint or test scripts. Do not claim that lint or tests
-passed unless the corresponding scripts are added and actually run.
+There is currently no repository lint script or repo-wide test script. The server package
+does have `pnpm --filter server test`, which runs `node --test src/test/*.test.ts`. Do not
+claim that lint or tests passed unless the corresponding command was actually run.
 
 ## Working agreements
 

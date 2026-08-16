@@ -22,5 +22,5 @@ the `.ts` extension** (see `src/app.ts`).
 - The catch-all 404 and the error handler stay last in `app.ts`; mount new routers above them.
 - Validate request input with zod at the route boundary and return the shared error envelope
   so the client can render the message.
-- Domain data lives in `contacts` (clients) and `employees` (staff). `users` is the future
-  authentication surface — not a people directory, so do not attach domain data to it.
+- `contacts` (clients) and `employees` (staff) remain the CRM people directory. `users`
+  holds account identity plus the account profile used to administer access.

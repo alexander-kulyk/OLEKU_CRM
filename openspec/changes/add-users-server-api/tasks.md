@@ -154,10 +154,10 @@
 
 ## 8. Documentation and full-suite verification
 
-- [ ] 8.1 Narrow the `users` rule in `server/CLAUDE.md:23-24` and `server/AGENTS.md:27-28`: `users` holds account identity plus account profile; `contacts` and `employees` remain the CRM people directory.
-- [ ] 8.2 Correct the stale claim in `server/AGENTS.md` (Verification) and `AGENTS.md:37-38` that there is no server test script — `pnpm --filter server test` exists and runs `node --test src/test/*.test.ts`.
-- [ ] 8.3 Document the deferred requirements in the module so the gap is visible in the code, not only in the change: REQ-USR-067 self-archive, REQ-USR-068 last-administrative-user, REQ-USR-081 audit trail, REQ-USR-084 rate limiting, and the `401`/`403` rows of REQ-USR-073.
-- [ ] 8.4 Run the full suite and the build together and confirm no existing test regressed.
+- [x] 8.1 Narrow the `users` rule in `server/CLAUDE.md:23-24` and `server/AGENTS.md:27-28`: `users` holds account identity plus account profile; `contacts` and `employees` remain the CRM people directory.
+- [x] 8.2 Correct the stale claim in `server/AGENTS.md` (Verification) and `AGENTS.md:37-38` that there is no server test script — `pnpm --filter server test` exists and runs `node --test src/test/*.test.ts`.
+- [x] 8.3 Document the deferred requirements in the module so the gap is visible in the code, not only in the change: REQ-USR-067 self-archive, REQ-USR-068 last-administrative-user, REQ-USR-081 audit trail, REQ-USR-084 rate limiting, and the `401`/`403` rows of REQ-USR-073.
+- [x] 8.4 Run the full suite and the build together and confirm no existing test regressed.
 
 **Depends on:** Stage 7
 
