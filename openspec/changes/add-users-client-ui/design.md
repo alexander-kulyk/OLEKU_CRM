@@ -12,11 +12,11 @@ The client enforces Feature-Sliced Design with `app -> pages -> features -> shar
 - Keep URL state, remote-result state, form state, and dialog state under one explicit ownership model.
 - Preserve the server's paginated, versioned, merge-patch, and error contracts without optimistic row mutation.
 - Make request races, URL repair, normalized diffs, error recovery, and dialog focus behavior independently testable.
-- Leave typed seams for operator/authentication and organization settings while failing visibly and safely when those inputs are unavailable.
+- Leave typed seams for operator/authentication and deployment phone configuration while failing visibly and safely when those inputs are unavailable.
 
 **Non-Goals:**
 
-- Implementing or probing the server Users API, authentication, role policy, organization settings, audit storage, or rate limiting.
+- Implementing or probing the server Users API, authentication, role policy, deployment configuration, audit storage, or rate limiting.
 - Introducing Users state into the event/calendar Zustand store, adding another client-wide store, or adding a remote caching library.
 - Adding user creation, invitations, archived-user browsing/restoration, permanent erasure, bulk actions, localization infrastructure, or a mobile card view.
 - Reorganizing existing event features or introducing `entities`/`widgets` solely for this page.
@@ -51,7 +51,7 @@ Alternative considered: let Users catch raw Axios errors. That would bypass the 
 
 ### D4. Use a flat form model and one normalization/diff boundary
 
-The edit form uses flat keys for address inputs (`addressCountry`, `addressCity`, `addressStreet`, `addressPostalCode`) so the existing resolver can associate each Zod issue correctly. A pure mapper converts detail DTOs into form defaults. A single normalization function trims and NFC-normalizes applicable text, canonicalizes nullable empty values, and uses the client `libphonenumber-js` dependency to parse and normalize phone data with the supplied organization region. The client and server packages use compatible library versions so their phone semantics do not drift.
+The edit form uses flat keys for address inputs (`addressCountry`, `addressCity`, `addressStreet`, `addressPostalCode`) so the existing resolver can associate each Zod issue correctly. A pure mapper converts detail DTOs into form defaults. A single normalization function trims and NFC-normalizes applicable text, canonicalizes nullable empty values, and uses the client `libphonenumber-js` dependency to parse and normalize phone data with the deployment-wide default region. The client and server packages use compatible library versions so their phone semantics do not drift.
 
 Dirty detection compares normalized current values to normalized defaults. A pure patch builder uses the same values and returns either a versioned patch containing changed mutable members or `null` for a clean form. Address diff rules are explicit: changed members appear individually, cleared members become `null`, omitted members remain untouched, and clearing all previously populated components becomes `address: null`. Save with a `null` patch is a local non-error no-op and leaves the dialog open.
 
@@ -67,13 +67,13 @@ Shared modal infrastructure gains a small provider/stack registry mounted at the
 
 Alternative considered: independent document key listeners in each dialog. That is the current design and cannot guarantee topmost ownership or correct focus restoration for stacked confirmations.
 
-### D6. Inject operator and organization context; never synthesize it
+### D6. Inject operator context and deployment phone configuration
 
-`UserManagement` accepts a narrow runtime-context interface containing current operator ID, organization timezone, default phone region, and a 401 recovery callback. `UsersPage` exposes the same optional integration seam so a future app-level authentication/settings provider can supply it from the `app` layer without a feature importing upward. The current route may omit the object; the feature then renders configuration-unavailable output for affected values/actions rather than using browser locale/timezone or editable record data as authority.
+`UserManagement` accepts a narrow runtime-context interface containing current operator ID, deployment-wide default phone region, and a 401 recovery callback. `UsersPage` exposes the same optional integration seam so a future app-level authentication/configuration provider can supply it from the `app` layer without a feature importing upward. Last Login is always rendered in UTC. The current route may omit the object; the feature then renders configuration-unavailable output only for affected identity, recovery, or national-phone behaviors rather than using browser data as authority.
 
-Missing operator identity disables Archive for all records with an explanation, because enabling it could expose self-archive while neither client nor planned server currently has the required identity policy. Missing timezone leaves a clearly unavailable Last Login presentation for non-null timestamps. Missing default phone region blocks ambiguous national-phone saves while valid international phone input remains eligible. A supplied 401 callback is invoked without resetting local form state; without one, the form stays intact and shows an authentication-recovery-unavailable operation error.
+Missing operator identity disables Archive for all records with an explanation, because enabling it could expose self-archive while neither client nor planned server currently has the required identity policy. Missing default phone region blocks ambiguous national-phone saves while valid international phone input remains eligible. A supplied 401 callback is invoked without resetting local form state; without one, the form stays intact and shows an authentication-recovery-unavailable operation error.
 
-Alternative considered: Vite environment values for operator identity or organization settings. Build-time values cannot securely represent the signed-in operator or per-organization configuration and would silently turn an unknown into global mutable policy.
+Alternative considered: Vite environment values for operator identity. Build-time values cannot securely represent the signed-in operator. The phone region is intentionally global deployment configuration and may be supplied through the runtime seam.
 
 ### D7. Define a recovery matrix instead of generic dialog failure
 
@@ -105,7 +105,7 @@ Alternative considered: build-only verification. It cannot observe debounce, req
 
 - **[Users API is planned but not callable (U-001/R-001)]** → Pin the adapter and fixtures to the active server specs; keep all tests local; require an explicit integrated smoke check against the configured base URL after `add-users-server-api` is applied.
 - **[Operator/authentication contracts do not exist (U-002/R-005)]** → Use the injected interface and safe unavailable states; keep Archive disabled without identity; do not claim self-archive or re-authentication completion until an app provider is connected.
-- **[Organization timezone/phone region contracts do not exist (U-003/R-006)]** → Never fall back to browser authority; expose unavailable states and allow only unambiguous international phone validation until settings are supplied.
+- **[Deployment phone-region configuration is unavailable (U-003/R-006)]** → Never fall back to browser authority; expose an unavailable state and allow only unambiguous international phone validation until the setting is supplied.
 - **[Shared error code overlap with active calendar work (F-013/R-003)]** → Merge the union additively and add regression coverage for existing event/directory mappings as well as Users field/status metadata.
 - **[Shared modal changes can regress Event dialogs (R-007)]** → Preserve the current public props where possible, add provider wiring once at the app root, and test single as well as stacked modal behavior before switching Users on.
 - **[URL search terms expose PII in browser history/referrers (R-011)]** → Meet the explicit URL requirement but add no client storage or telemetry persistence and avoid logging complete query URLs.

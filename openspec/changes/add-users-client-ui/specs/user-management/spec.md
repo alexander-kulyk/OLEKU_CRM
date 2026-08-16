@@ -22,7 +22,7 @@ Inactive and blocked rows SHALL have a muted appearance while active rows use th
 
 ### Requirement: Users collection is server-driven
 
-The page SHALL request `GET /api/users` and SHALL delegate pagination, search, status filtering, and sorting to the server. It SHALL support page sizes 20, 50, and 100 with 20 as the default, and SHALL never require all organization users to be loaded into the browser.
+The page SHALL request `GET /api/users` and SHALL delegate pagination, search, status filtering, and sorting to the server. It SHALL support page sizes 20, 50, and 100 with 20 as the default, and SHALL never require the complete user collection to be loaded into the browser.
 
 Supported interactive sorts SHALL be First Name, Last Name, Status, and Last Login in both directions. The initial ordering SHALL use the server default of last name ascending, first name ascending, and ID ascending as the final deterministic tiebreaker. The page SHALL submit multiple selected statuses as the Users API's comma-separated status query.
 
@@ -80,14 +80,14 @@ The page SHALL cancel superseded list requests when possible and SHALL independe
 
 ### Requirement: Collection states are distinct and recoverable
 
-The page SHALL distinguish initial/loading state, load failure, an organization with no visible users, and zero results caused by search or status filters. Loading and error feedback SHALL be exposed through an appropriate status or live region. A failed request SHALL offer Retry without changing the canonical URL or controls.
+The page SHALL distinguish initial/loading state, load failure, an empty user collection, and zero results caused by search or status filters. Loading and error feedback SHALL be exposed through an appropriate status or live region. A failed request SHALL offer Retry without changing the canonical URL or controls.
 
 The no-results state SHALL offer Clear filters whenever search or statuses narrow the result. Clear filters SHALL remove search and status filters, reset page to 1, preserve the selected page size and sort, and request the resulting unfiltered collection.
 
-#### Scenario: Organization is empty
+#### Scenario: User collection is empty
 
 - **WHEN** the unsearched and unfiltered page 1 response reports zero total records
-- **THEN** the page displays a true empty-organization message and does not present it as a search failure
+- **THEN** the page displays a true empty-users message and does not present it as a search failure
 
 #### Scenario: Query has no matches
 
@@ -143,7 +143,7 @@ If the detail response is archived, the page SHALL not permit editing, SHALL inf
 
 The Edit User dialog SHALL expose editable First Name, Last Name, Email, Phone, Phone Extension, Country, City, Street, Postal Code, and Status fields, and read-only User ID, Last Login, and Created At values. Names SHALL be trimmed, Unicode-NFC normalized, required, at most 100 characters, and free of control characters while allowing valid apostrophes and hyphens. Email SHALL be trimmed, required, syntactically valid, and at most 254 characters.
 
-Phone and phone extension SHALL be optional; a present phone SHALL be validated using the configured organization phone region while continuing to accept valid international numbers. Address fields SHALL be optional, trimmed, Unicode-capable, and invalid when non-empty input contains only whitespace. Invalid fields SHALL have inline, programmatically associated errors and SHALL prevent a save request.
+Phone and phone extension SHALL be optional; a present phone SHALL be validated using the deployment-wide configured phone region while continuing to accept valid international numbers. Address fields SHALL be optional, trimmed, Unicode-capable, and invalid when non-empty input contains only whitespace. Invalid fields SHALL have inline, programmatically associated errors and SHALL prevent a save request.
 
 #### Scenario: Invalid editable values are submitted
 
@@ -222,9 +222,9 @@ After success, the page SHALL close the archive and edit dialogs and refetch the
 - **WHEN** the server returns `CANNOT_ARCHIVE_SELF` or `CANNOT_ARCHIVE_LAST_ADMINISTRATIVE_USER`
 - **THEN** the confirmation closes, the edit form remains intact, and an operation-level explanation is displayed
 
-### Requirement: Operator and organization context are required inputs
+### Requirement: Operator context and deployment phone configuration are explicit inputs
 
-The page SHALL consume current-operator identity for self-archive presentation, centralized authentication recovery for 401 responses, organization timezone for date display, and organization default phone region for phone validation. It SHALL not derive organization settings or operator identity from browser locale, browser timezone, URL data, or editable user data.
+The page SHALL consume current-operator identity for self-archive presentation, centralized authentication recovery for 401 responses, and the deployment-wide default phone region for phone validation. It SHALL display Last Login in UTC and SHALL not derive operator identity or phone-region configuration from browser locale, browser timezone, URL data, or editable user data.
 
 When current-operator identity is available and matches the edited user, Archive SHALL be disabled with an explanation. When any required context is unavailable, the affected behavior SHALL expose a configuration-unavailable state and SHALL not silently substitute a browser-derived value. A 401 during editing SHALL be delegated to the centralized recovery flow without intentionally closing or resetting a dirty form; a 403 SHALL remain an operation-level error.
 
@@ -233,10 +233,10 @@ When current-operator identity is available and matches the edited user, Archive
 - **WHEN** current-operator identity matches the edited user ID
 - **THEN** Archive is disabled with an accessible explanation while server-side protection remains authoritative
 
-#### Scenario: Organization timezone is unavailable
+#### Scenario: Last Login uses UTC
 
-- **WHEN** a record has Last Login but no organization timezone has been supplied
-- **THEN** the page does not silently format it in the browser timezone and exposes that the organization display configuration is unavailable
+- **WHEN** a record has a non-null Last Login value
+- **THEN** the page displays it in UTC rather than the browser timezone
 
 #### Scenario: Session expires with unsaved work
 
@@ -288,4 +288,3 @@ The page SHALL use the URL for the query state required for refresh, history, an
 
 - **WHEN** an operator searches by name, email, or phone and later leaves the page
 - **THEN** this capability has created no additional local-storage, session-storage, or telemetry copy of the search term or returned records
-

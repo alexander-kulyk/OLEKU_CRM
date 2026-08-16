@@ -14,13 +14,12 @@ See `proposal.md` — Why. The constraints that actually shape this design, all 
 **Goals:**
 
 - Serve every required ordering and search case from an index, so `< 500 ms` (REQ-USR-082) is a property of the design rather than a hope.
-- Express the whole update precondition — organization, archived state, version — as one atomic write, because evaluating those in application code between a read and a save reintroduces exactly the lost update the requirement exists to prevent.
-- Make the organization filter structurally unavoidable, so no future query can accidentally omit it.
+- Express the whole update precondition — identifier, archived state, and version — as one atomic write, because evaluating those in application code between a read and a save reintroduces exactly the lost update the requirement exists to prevent.
 - Keep the derived keys impossible to forget: they are computed in one place that every write path must pass through.
 
 **Non-Goals:**
 
-- Authentication, authorization, roles, or session handling. The organization context is a seam with a configured default, not an auth implementation.
+- Authentication, authorization, roles, or session handling.
 - Operator identity, audit records, rate limiting, `401`/`403`. Deferred per the proposal; the design only ensures adding them later is additive.
 - User creation and restore endpoints. `POST /api/users` and the restore flow are out of scope (PRD §85), but the model and index are designed so they slot in without a migration.
 - Any client work.
@@ -56,12 +55,12 @@ Search runs as an anchored, escaped `$regex` against the **folded** keys, never 
 The update filter carries the entire precondition:
 
 ```
-{ _id, organizationId, archivedAt: null, version }
+{ _id, archivedAt: null, version }
 ```
 
 A matched document is updated with `$set` of the validated fields and derived keys plus `$inc: { version: 1 }`, returning the new document. One round trip; no window between check and write.
 
-When nothing matches, the result is ambiguous — missing, foreign, archived, or stale — so a single follow-up read scoped to `{ _id, organizationId }` disambiguates it:
+When nothing matches, the result is ambiguous — missing, archived, or stale — so a single follow-up read scoped to `{ _id }` disambiguates it:
 
 - no document → `404 NOT_FOUND`
 - `archivedAt` set → `409 USER_ARCHIVED`
@@ -71,7 +70,7 @@ The extra read costs one round trip only on the failure path, and it is *read af
 
 Archive is the same shape without the version and without `archivedAt: null` in the filter, using `$set: { archivedAt: <now> }` only if not already set — which is what makes the repeat call idempotent while preserving the original timestamp (REQ-USR-070).
 
-*Alternatives considered.* Mongoose's built-in `optimisticConcurrency` (research Direction C) is library-maintained and works with the house load-merge-save path, but it requires re-introducing a `versionKey` that every existing model deliberately sets to `false` (F-016), it increments on *every* save including archive — which REQ-USR-071 deliberately keeps version-free — and it still leaves organization and archived state as application-level checks outside the atomic write. The house load-merge-save pattern (`event.service.ts:317-368`) was rejected for the same reason: three of the four preconditions would be evaluated in application code.
+*Alternatives considered.* Mongoose's built-in `optimisticConcurrency` (research Direction C) is library-maintained and works with the house load-merge-save path, but it requires re-introducing a `versionKey` that every existing model deliberately sets to `false` (F-016), and it increments on *every* save including archive — which REQ-USR-071 deliberately keeps version-free. The house load-merge-save pattern (`event.service.ts:317-368`) was rejected because the archived-state and version preconditions would be evaluated in application code.
 
 *Cost accepted.* `findOneAndUpdate` bypasses `pre('validate')` (EVID-026), so **no invariant may live in document middleware**. D3 addresses this.
 
@@ -87,7 +86,7 @@ This is the direct answer to the cost accepted in D1 and D2: derived keys cannot
 
 ### D5 — Uniqueness is enforced by the index, and `E11000` is translated, not pre-checked
 
-A unique index on `(organizationId, emailNormalized)` — no partial filter, so archived records keep reserving their address (REQ-USR-006) — is the sole authority. The service does **not** pre-check for a duplicate: a pre-check cannot be atomic and would surface the loser of a concurrent write as `500` (F-018, R-004).
+A unique index on `emailNormalized` — no partial filter, so archived records keep reserving their address (REQ-USR-006) — is the sole authority. The service does **not** pre-check for a duplicate: a pre-check cannot be atomic and would surface the loser of a concurrent write as `500` (F-018, R-004).
 
 Instead the driver's duplicate-key error is caught and translated. Because the error alone does not say who owns the address (F-019), the handler reads the owning record's `archivedAt` to choose between `EMAIL_ALREADY_EXISTS` and `EMAIL_TAKEN_BY_ARCHIVED_USER`, both with `field: 'email'`. Any duplicate-key error from a *different* index is re-thrown unchanged rather than mislabelled.
 
@@ -100,14 +99,6 @@ The index is created with the same collation as the name index only if that prov
 Deep pagination via `skip` is accepted at the expected scale. This is the one place the design knowingly trades a scaling property for simplicity; R-014 records it, and the fix (range pagination on the same sort keys) is available later without changing the response contract, since `page`/`pageSize` remain the client's interface.
 
 *Alternative considered.* A `$facet` returning items and count in one round trip — rejected because it forces the whole read into an aggregation, which per D1 gives up the index-served sort.
-
-### D7 — Organization context is one seam, injected, never request-derived
-
-A single accessor supplies `organizationId` for the current request. Until authentication exists it returns a configured default (`DEFAULT_ORGANIZATION_ID` in `env.ts`, the only place `process.env` is read). It is threaded into the service as an explicit argument, and **no** service function accepts a filter that lacks it.
-
-The rule the implementation must hold, and the review must enforce: `organizationId` is never read from a header, query parameter, path segment, or body. If it ever is, REQ-USR-004 becomes a cross-tenant data leak rather than a scoping rule (R-001) — the single highest-impact failure mode in this change.
-
-Substituting real authentication later changes only the accessor's body.
 
 ### D8 — Widen the JSON parser by type, at the app level
 
@@ -127,9 +118,8 @@ Merge-patch semantics themselves are implemented in the users schema, not in the
 
 ## Risks / Trade-offs
 
-- **[`organizationId` sourced from request input]** → The seam (D7) is the only accessor; every service signature takes it explicitly; a test asserts that supplying an organization identifier in a query, header, or body does not change the scope of the result. This is the review-blocking rule of this change.
 - **[Derived keys drift from their sources]** → D3 makes them a single expression with the fields they derive from; a test asserts that after an update, search by the *new* name and email finds the record and search by the old one does not.
-- **[Unique index creation fails on pre-existing duplicate `(organizationId, emailNormalized)` pairs (U-006, R-005)]** → The collection's real state was never inspected and must not be assumed empty. Index creation is an explicit, verified step with a duplicate check before it, not an implicit `syncIndexes()` side effect at startup.
+- **[Unique index creation fails on pre-existing duplicate `emailNormalized` values (U-006, R-005)]** → The collection selected by `DB_HOST` must not be assumed empty. Index creation is an explicit, verified step with a duplicate check before it, not an implicit `syncIndexes()` side effect at startup.
 - **[Concurrent duplicate email surfaces as `500`]** → D5 removes the pre-check entirely and translates `E11000`; verified with two concurrent writes to the same new address, asserting one `409` and zero `500`s.
 - **[Cyrillic search silently under-matches, reading as "no results" rather than an error (R-007)]** → Folding at write time (D1) means the query carries no `i` flag; verified with a Cyrillic case-difference search and a Latin diacritic search.
 - **[Unstable pagination repeats or drops records (R-010)]** → `_id` ascending is appended to *every* sort, not just the default; verified by paging a set of identical names end-to-end and asserting the union equals the full set with no duplicates.
@@ -138,14 +128,14 @@ Merge-patch semantics themselves are implemented in the users schema, not in the
 - **[Amending `api-foundation` breaks its existing tests]** → `server/src/test/api-foundation.test.ts:146-147,173-174` asserts the exact key set of the body and of `body.error`; those assertions change deliberately as part of this change, and the new assertion must keep proving that no *unexpected* member appears — the point of the original test survives (R-011).
 - **[Merge-patch content type still unparsed]** → D8 plus a test that sends the identical body under both media types and asserts identical outcomes (R-003).
 - **[The PRD's `version` member inside the patch body is not RFC 7396]** → Acknowledged: this is merge-patch-*like*. Documentation and the spec describe it as such rather than claiming conformance, since a strict RFC 7396 processor would treat `version` as a field to set.
-- **[Audit and operator-dependent rules are deferred while the PRD marks them MUST]** → Stated in the proposal as an explicit scope decision, not an omission. The seam (D7) is the extension point; note that any future audit write is cross-collection and cannot assume atomicity — the test environment is a standalone in-memory MongoDB with no transactions (F-024, U-004).
+- **[Audit and operator-dependent rules are deferred while the PRD marks them MUST]** → Stated in the proposal as an explicit scope decision, not an omission. Future authentication work must define the operator-identity boundary; any future audit write is cross-collection and cannot assume atomicity because the test environment is a standalone in-memory MongoDB with no transactions (F-024, U-004).
 - **[`AGENTS.md` claims there is no server test script, but nine test files and a working `test` script exist (F-023)]** → Verification uses `pnpm --filter server test` and `pnpm --filter server build`; the stale instruction is corrected as part of the docs touched by this change rather than silently worked around.
 
 ## Migration Plan
 
 No data migration: the `users` collection has no server-side consumer today and the client page is a placeholder that issues no request (F-022).
 
-1. Verify the target `users` collection's actual state before the first write — specifically, that no duplicate `(organizationId, emailNormalized)` pairs exist. Do not assume it is empty (U-006).
+1. Require `DB_HOST`, identify the target without exposing URI credentials, and verify that target's `users` collection has no duplicate `emailNormalized` values. Do not assume it is empty (U-006).
 2. Create the unique index and the sort/search indexes explicitly and verify they built.
 3. Deploy the server; the endpoints are additive and no existing route changes shape.
 
@@ -155,7 +145,7 @@ No data migration: the `users` collection has no server-side consumer today and 
 
 These are deferrable: none changes the specs, the approach, or the task breakdown.
 
-- **Collation locale (U-003 adjacent, A-002).** `uk` at strength 2 is the working choice, assuming "deterministic ordering for all operators in the same organization" (REQ-USR-026) means *one* server-side collation rather than a per-operator locale. If organizations later need distinct locales, that is an index-per-locale question, not a redesign.
+- **Collation locale (U-003 adjacent, A-002).** `uk` at strength 2 is the deployment-wide working choice for deterministic ordering. A future locale change requires an index rebuild, not an API redesign.
 - **`DEFAULT_PHONE_REGION` value (U-003).** A configured default is required by REQ-USR-031; which region it starts at is a deployment setting and can change without code.
 - **Production MongoDB topology and version (U-004).** Affects transaction availability and PCRE2-era regex behavior, neither of which this design depends on — the design deliberately avoids transactions and avoids `i`-flag matching.
 - **Whether a platform-level rate limiter fronts the API (U-005).** Rate limiting is out of scope for this change; the answer only determines whether the future implementation is application- or platform-level.

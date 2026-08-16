@@ -14,7 +14,6 @@ This version consolidates and clarifies:
 - user personal information;
 - phone and address support;
 - status-based row styling;
-- organization isolation;
 - server-side pagination, search, filtering, and sorting;
 - email uniqueness rules;
 - archived-user behavior;
@@ -101,7 +100,6 @@ Logical model:
 ```ts
 User {
   id: string;
-  organizationId: string;
 
   firstName: string;
   lastName: string;
@@ -141,7 +139,6 @@ User {
 The following fields MUST exist:
 
 - `id`
-- `organizationId`
 - `firstName`
 - `lastName`
 - `email`
@@ -175,58 +172,27 @@ The user ID MUST:
 
 ---
 
-# 7. Organization Ownership
-
-## REQ-USR-004
-
-Every user MUST belong to one organization.
-
-```ts
-organizationId: string;
-```
-
-All user operations MUST scope the record by:
-
-```text
-userId + organizationId
-```
-
-The backend MUST NOT retrieve, modify, or archive a user based only on a user ID.
-
-A foreign organization record MUST behave as not found.
-
-```http
-404 Not Found
-```
-
-The mechanism for obtaining the current organization is defined in Authentication / Authorization requirements.
-
----
-
 # 8. Email Uniqueness
 
 ## REQ-USR-005
 
-Email uniqueness MUST be enforced **within an organization**.
+Email uniqueness MUST be enforced globally across user records.
 
 Conceptually:
 
 ```text
-organizationId + emailNormalized
+emailNormalized
 ```
 
 must be unique.
 
-MongoDB implementation should therefore enforce the equivalent of a compound unique index.
+MongoDB implementation SHOULD therefore enforce a unique index on the normalized email.
 
 Example:
 
 ```text
-organization A + anna@example.com ✅
-organization B + anna@example.com ✅
-
-organization A + anna@example.com
-organization A + ANNA@example.com ❌
+anna@example.com ✅
+ANNA@example.com ❌
 ```
 
 ---
@@ -240,7 +206,7 @@ Archiving a user MUST NOT release their email address.
 An archived user continues to reserve:
 
 ```text
-organizationId + emailNormalized
+emailNormalized
 ```
 
 If an operation attempts to use an email belonging to an archived record, the backend MUST return:
@@ -741,7 +707,7 @@ Name sorting MUST:
 - support Unicode;
 - correctly handle Cyrillic names;
 - use a stable server-side collation;
-- produce the same deterministic ordering for all operators in the same organization.
+- produce the same deterministic ordering for all operators.
 
 The exact MongoDB collation configuration is defined in technical database design.
 
@@ -860,7 +826,7 @@ A standards-based phone parser such as libphonenumber SHOULD be used in technica
 
 ## REQ-USR-031
 
-If a phone number is entered without a country code, parsing MUST use the organization's configured default region.
+If a phone number is entered without a country code, parsing MUST use the deployment's configured default region.
 
 The system MUST NOT infer a region arbitrarily from the browser.
 
@@ -906,7 +872,7 @@ For example:
 0501234567
 ```
 
-should match the same underlying number where organization-region normalization makes them equivalent.
+should match the same underlying number where configured-region normalization makes them equivalent.
 
 ---
 
@@ -989,11 +955,11 @@ The page MUST NOT crash because of malformed query parameters.
 
 ---
 
-# 40. Empty Organization State
+# 40. Empty Users State
 
 ## REQ-USR-037
 
-If the organization contains no user records available to this page, the UI MUST display a true empty state.
+If no user records are available to this page, the UI MUST display a true empty state.
 
 Example:
 
@@ -1083,7 +1049,7 @@ JavaScript `Date` objects are not an API wire format.
 
 `lastLoginAt` MUST be stored and transmitted in UTC.
 
-The UI MUST display Last Login using the organization's configured timezone.
+The UI MUST display Last Login in UTC.
 
 If the user has never logged in:
 
@@ -1169,10 +1135,7 @@ before editing.
 
 ## REQ-USR-047
 
-The details endpoint MUST return archived users if:
-
-- the user belongs to the current organization;
-- the ID exists.
+The details endpoint MUST return an archived user when the ID exists.
 
 Example:
 
@@ -1198,7 +1161,7 @@ If the Edit dialog requests a user that has already been archived, the UI MUST:
 - refresh the list;
 - inform the operator that the user was archived.
 
-A truly unknown or foreign user returns:
+A truly unknown user returns:
 
 ```http
 404 Not Found
@@ -1746,7 +1709,7 @@ CANNOT_ARCHIVE_SELF
 
 ## REQ-USR-068
 
-The Archive endpoint MUST integrate with the system access-control policy and MUST reject an archive operation if it would leave the organization without an account capable of administering the organization.
+The Archive endpoint MUST integrate with the system access-control policy and MUST reject an archive operation if it would leave the system without an account capable of administration.
 
 The exact role/permission definition is maintained in the separate Access Control requirements.
 
@@ -1872,7 +1835,7 @@ Example global error:
 | `400`  | Invalid input/query/request                 |
 | `401`  | Authentication required/expired             |
 | `403`  | Authenticated but operation not permitted   |
-| `404`  | User does not exist in current organization |
+| `404`  | User does not exist                         |
 | `409`  | Business/concurrency conflict               |
 | `429`  | Rate limit exceeded                         |
 | `5xx`  | Unexpected server failure                   |
@@ -2139,16 +2102,6 @@ Exact thresholds are defined separately.
 ---
 
 # 89. Acceptance Criteria
-
-## AC-USR-001 — Organization Isolation
-
-**Given** a user belongs to Organization B
-**And** the operator belongs to Organization A
-**When** the operator requests that user's ID
-**Then** the API returns `404`
-**And** no information about the foreign user is exposed.
-
----
 
 ## AC-USR-002 — Load Users
 
@@ -2529,7 +2482,6 @@ The following are defined separately:
 - session invalidation rules;
 - permanent privacy-erasure workflow implementation;
 - audit storage architecture;
-- organization timezone management.
 
 ---
 

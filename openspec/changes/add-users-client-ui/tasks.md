@@ -47,10 +47,10 @@
 - [ ] 3.1 Create `client/src/features/user-management` with `api`, `model`, `lib`, `config`, and `ui` segments plus a minimal public `index.ts`; keep all Users DTOs and domain types inside this feature.
 - [ ] 3.2 Define typed list/detail/pagination/query/patch/runtime-context contracts that match `add-users-server-api`, including list/detail version separation and supported status/sort/page-size unions.
 - [ ] 3.3 Implement pure parse, canonicalize, serialize, wire-query, and page-repair functions for `page`, `pageSize`, `search`, statuses, and sort, with deterministic defaults/order and one-character search suppression.
-- [ ] 3.4 Implement feature-local Users API functions for list/detail/PATCH/archive through the shared Axios client, including read cancellation signals, merge-patch content type, explicit typed response shapes, and no client-side tenant parameter.
+- [ ] 3.4 Implement feature-local Users API functions for list/detail/PATCH/archive through the shared Axios client, including read cancellation signals, merge-patch content type, and explicit typed response shapes.
 - [ ] 3.5 Add pure/API tests for invalid URL repair, stable serialization, Back/Forward-ready state restoration, supported query combinations, `totalPages` zero/out-of-range repair, DTO/version separation, request shapes, and cancellation/error propagation.
 
-**Do not:** Create a Users store, add a remote cache, copy Users types into `shared`, read `organizationId` from the URL/client, or call a deployed endpoint in tests.
+**Do not:** Create a Users store, add a remote cache, copy Users types into `shared`, or call a deployed endpoint in tests.
 
 **Validation:**
 
@@ -155,10 +155,10 @@
 
 - [ ] 8.1 Confirm every `add-users-server-api` implementation task is complete, its server build passes, and its list/detail/patch/archive DTOs, content type, error field/codes, and CORS/base-URL environment still match this client's adapter.
 - [ ] 8.2 Run the full client suite/build and strict OpenSpec validation, then review the resulting diff to confirm only intended client, package/lockfile, root script, and `add-users-client-ui` task-status changes are present.
-- [ ] 8.3 Against an approved local/non-production environment, smoke-test initial list, search/filter/sort/pagination, detail-before-edit, clean Save, successful update, duplicate email, version conflict, archive, pagination repair, and configured operator/timezone/phone-region behavior.
-- [ ] 8.4 Record any unavailable auth/settings integration as an explicit blocker and leave the corresponding task unchecked; do not mark full BR-USERS client compliance until current-operator, 401 recovery, organization timezone, and default phone region are supplied and exercised.
+- [ ] 8.3 Against an approved local/non-production environment, smoke-test initial list, search/filter/sort/pagination, detail-before-edit, clean Save, successful update, duplicate email, version conflict, archive, pagination repair, UTC Last Login, and configured operator/phone-region behavior.
+- [ ] 8.4 Record any unavailable auth/configuration integration as an explicit blocker and leave the corresponding task unchecked; do not mark full BR-USERS client compliance until current-operator, 401 recovery, and the deployment default phone region are supplied and exercised.
 
-**Do not:** Probe the deployed Azure API, use production credentials/data, bypass server organization scoping, or mark integration complete from mocks alone.
+**Do not:** Probe the deployed Azure API, use production credentials/data, or mark integration complete from mocks alone.
 
 **Validation:**
 

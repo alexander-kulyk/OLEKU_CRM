@@ -1,46 +1,12 @@
 ## Purpose
 
-Defines the server contract for managing registered CRM users: listing them with server-side pagination, search, filtering and deterministic ordering; reading one; updating one partially under optimistic concurrency; and archiving one as a reversible soft delete. Every operation is confined to the caller's own organization, and archived records remain stored so historical references stay valid.
+Defines the server contract for managing registered CRM users: listing them with server-side pagination, search, filtering and deterministic ordering; reading one; updating one partially under optimistic concurrency; and archiving one as a reversible soft delete. Archived records remain stored so historical references stay valid.
 
 ## ADDED Requirements
 
-### Requirement: Every user operation is scoped to the caller's organization
-
-Every read and every write SHALL be constrained by both the user identifier and the caller's organization. The organization SHALL be derived server-side; it SHALL NOT be read from a request header, query parameter, path segment, or body, and no request input SHALL be able to widen or change it. A record belonging to another organization SHALL be indistinguishable from a record that does not exist.
-
-#### Scenario: Foreign organization record is read
-
-- **WHEN** a caller in organization A requests `GET /api/users/:userId` for a user belonging to organization B
-- **THEN** the response status is 404 with `error.code` of `NOT_FOUND`
-- **AND** the response body contains no field value from the foreign record
-
-#### Scenario: Foreign organization record is updated
-
-- **WHEN** a caller in organization A sends `PATCH /api/users/:userId` for a user belonging to organization B
-- **THEN** the response status is 404
-- **AND** the foreign record is unmodified
-
-#### Scenario: Foreign organization record is archived
-
-- **WHEN** a caller in organization A sends `DELETE /api/users/:userId` for a user belonging to organization B
-- **THEN** the response status is 404
-- **AND** the foreign record's `archivedAt` remains unchanged
-
-#### Scenario: Listing never crosses organizations
-
-- **WHEN** a caller in organization A requests `GET /api/users` with any combination of search, filter, sort and pagination parameters
-- **THEN** every returned item belongs to organization A
-- **AND** the reported `total` counts only organization A's records
-
-#### Scenario: Request input cannot influence organization scope
-
-- **WHEN** a request supplies an organization identifier in a query parameter, header, or body
-- **THEN** the value is ignored or rejected
-- **AND** the operation is scoped to the caller's server-derived organization
-
 ### Requirement: The user list excludes archived records and is paginated server-side
 
-`GET /api/users` SHALL return only non-archived users of the caller's organization. The response SHALL be an object with an `items` array and a `pagination` object carrying `page`, `pageSize`, `total`, and `totalPages`. `total` SHALL be the count of records matching the active search and filters, not the size of the returned page. `pageSize` SHALL default to 20 and SHALL accept only 20, 50, or 100. Pagination, filtering, search, and sorting SHALL all be performed by the server; no endpoint SHALL require the client to hold the full record set.
+`GET /api/users` SHALL return only non-archived users. The response SHALL be an object with an `items` array and a `pagination` object carrying `page`, `pageSize`, `total`, and `totalPages`. `total` SHALL be the count of records matching the active search and filters, not the size of the returned page. `pageSize` SHALL default to 20 and SHALL accept only 20, 50, or 100. Pagination, filtering, search, and sorting SHALL all be performed by the server; no endpoint SHALL require the client to hold the full record set.
 
 #### Scenario: Default page
 
@@ -85,7 +51,7 @@ Every read and every write SHALL be constrained by both the user identifier and 
 
 ### Requirement: List ordering is deterministic and stable across pages
 
-The list SHALL support ordering by first name, last name, status, or last login, in ascending or descending direction. The default ordering SHALL be last name ascending, then first name ascending. Every ordering SHALL end with the user identifier ascending as its final tiebreaker, so that paginating a set containing equal sort keys neither repeats nor skips a record. An unrecognized sort field or direction SHALL be rejected. Name ordering SHALL be Unicode-correct, SHALL order Cyrillic names correctly, and SHALL produce the same sequence for every caller in the same organization.
+The list SHALL support ordering by first name, last name, status, or last login, in ascending or descending direction. The default ordering SHALL be last name ascending, then first name ascending. Every ordering SHALL end with the user identifier ascending as its final tiebreaker, so that paginating a set containing equal sort keys neither repeats nor skips a record. An unrecognized sort field or direction SHALL be rejected. Name ordering SHALL be Unicode-correct, SHALL order Cyrillic names correctly, and SHALL produce the same sequence for every caller.
 
 #### Scenario: Default ordering
 
@@ -236,17 +202,17 @@ Every users response SHALL contain only explicitly permitted fields. No response
 
 ### Requirement: The detail endpoint returns archived users
 
-`GET /api/users/:userId` SHALL return a user of the caller's organization whether or not it is archived, so that a caller can distinguish an archived record from a missing one. An archived record SHALL carry a non-null archived-at value. A well-formed identifier that matches no record in the caller's organization SHALL yield 404, and a malformed identifier SHALL be rejected before any persistence lookup.
+`GET /api/users/:userId` SHALL return a user whether or not it is archived, so that a caller can distinguish an archived record from a missing one. An archived record SHALL carry a non-null archived-at value. A well-formed identifier that matches no record SHALL yield 404, and a malformed identifier SHALL be rejected before any persistence lookup.
 
 #### Scenario: Archived user detail
 
-- **WHEN** a detail request targets a user of the caller's organization whose `archivedAt` is set
+- **WHEN** a detail request targets a user whose `archivedAt` is set
 - **THEN** the response status is 200
 - **AND** the body's archived-at member carries that timestamp
 
 #### Scenario: Unknown user detail
 
-- **WHEN** a detail request supplies a well-formed identifier matching no record in the caller's organization
+- **WHEN** a detail request supplies a well-formed identifier matching no record
 - **THEN** the response status is 404 with `error.code` of `NOT_FOUND`
 
 #### Scenario: Malformed identifier
@@ -372,20 +338,20 @@ First name and last name SHALL be required, trimmed, non-blank, at most 100 char
 - **THEN** the response status is 400
 - **AND** the status is unchanged
 
-### Requirement: Email is unique per organization across archived records
+### Requirement: Email is globally unique across archived records
 
-Email uniqueness SHALL be enforced by the datastore over the combination of organization and normalized email. Normalization SHALL trim leading and trailing whitespace and convert to lowercase, and SHALL NOT remove dots, strip a plus-suffix, or apply provider-specific alias rules. An archived user SHALL continue to reserve its email. An update that would take an email held by another non-archived user of the same organization SHALL fail as a conflict distinct from one that would take an email held by an archived user. The same email SHALL be usable in two different organizations.
+Email uniqueness SHALL be enforced by the datastore over normalized email. Normalization SHALL trim leading and trailing whitespace and convert to lowercase, and SHALL NOT remove dots, strip a plus-suffix, or apply provider-specific alias rules. An archived user SHALL continue to reserve its email. An update that would take an email held by another non-archived user SHALL fail as a conflict distinct from one that would take an email held by an archived user.
 
 #### Scenario: Duplicate email held by an active user
 
-- **WHEN** an update sets an email already held by another non-archived user in the same organization
+- **WHEN** an update sets an email already held by another non-archived user
 - **THEN** the response status is 409 with `error.code` of `EMAIL_ALREADY_EXISTS`
 - **AND** `error.field` is `email`
 - **AND** neither user record is modified
 
 #### Scenario: Duplicate email held by an archived user
 
-- **WHEN** an update sets an email already held by an archived user in the same organization
+- **WHEN** an update sets an email already held by an archived user
 - **THEN** the response status is 409 with `error.code` of `EMAIL_TAKEN_BY_ARCHIVED_USER`
 - **AND** `error.field` is `email`
 - **AND** neither user record is modified
@@ -402,15 +368,9 @@ Email uniqueness SHALL be enforced by the datastore over the combination of orga
 - **AND** an update sets `annasmith@example.com` or `anna.smith+crm@example.com`
 - **THEN** the addresses are treated as distinct and no uniqueness conflict is raised
 
-#### Scenario: Same email in two organizations
-
-- **WHEN** organization A holds a user with `anna@example.com`
-- **AND** a user in organization B is updated to `anna@example.com`
-- **THEN** the update succeeds
-
 #### Scenario: Concurrent updates to the same email
 
-- **WHEN** two concurrent updates in the same organization both set the same previously unused email
+- **WHEN** two concurrent updates both set the same previously unused email
 - **THEN** exactly one succeeds
 - **AND** the other returns 409 with `EMAIL_ALREADY_EXISTS`, never 500
 
@@ -444,7 +404,7 @@ An update targeting a record whose archived-at is set SHALL fail as a conflict a
 
 #### Scenario: Update of an already archived user
 
-- **WHEN** an update targets a user of the caller's organization whose `archivedAt` is set
+- **WHEN** an update targets a user whose `archivedAt` is set
 - **THEN** the response status is 409 with `error.code` of `USER_ARCHIVED`
 - **AND** no field of the archived record is modified
 
@@ -458,11 +418,11 @@ An update targeting a record whose archived-at is set SHALL fail as a conflict a
 
 ### Requirement: Archive is a soft delete that is idempotent
 
-`DELETE /api/users/:userId` SHALL archive a user of the caller's organization by setting archived-at to the current UTC timestamp, SHALL leave the operational status unchanged, and SHALL NOT physically remove the record or break references held by other entities. It SHALL return 204 with no body. It SHALL NOT require a version: archiving deliberately takes precedence over an unsaved concurrent edit. Repeating the request on an already archived user SHALL return 204 without changing the stored archived-at and without producing duplicate side effects. A well-formed identifier matching no record in the caller's organization SHALL yield 404.
+`DELETE /api/users/:userId` SHALL archive a user by setting archived-at to the current UTC timestamp, SHALL leave the operational status unchanged, and SHALL NOT physically remove the record or break references held by other entities. It SHALL return 204 with no body. It SHALL NOT require a version: archiving deliberately takes precedence over an unsaved concurrent edit. Repeating the request on an already archived user SHALL return 204 without changing the stored archived-at and without producing duplicate side effects. A well-formed identifier matching no record SHALL yield 404.
 
 #### Scenario: Successful archive
 
-- **WHEN** a caller archives a non-archived user of their organization
+- **WHEN** a caller archives a non-archived user
 - **THEN** the response status is 204 with no body
 - **AND** the record's archived-at is set
 - **AND** the record's status is the same value it had before
@@ -489,7 +449,7 @@ An update targeting a record whose archived-at is set SHALL fail as a conflict a
 
 #### Scenario: Archive of an unknown user
 
-- **WHEN** an archive request supplies a well-formed identifier matching no record in the caller's organization
+- **WHEN** an archive request supplies a well-formed identifier matching no record
 - **THEN** the response status is 404
 
 #### Scenario: References survive archival
