@@ -69,9 +69,9 @@
 
 ## 4. Ordering and search verification
 
-- [ ] 4.1 Add `server/src/test/users-ordering.test.ts`: default ordering is last name, first name, `_id`; ascending status order is `active, inactive, blocked` and descending reverses it; `lastLoginAt` nulls appear last ascending **and** last descending; Cyrillic surnames order by alphabet and the identical request returns the identical sequence twice.
-- [ ] 4.2 Add a stable-pagination test: seed a set whose members share last name and first name, page through the whole set at page size 20, and assert the union equals the seeded set with no duplicate and no omission.
-- [ ] 4.3 Add `server/src/test/users-search.test.ts`: `anna smith` matches first name `Anna` + last name `Smith`; `smith anna` matches the same record; `марія` matches `Марія`; an email substring matches; `+380501234567` is found by `+38 (050) 123-45-67`, `050 123 45 67`, and `0501234567`; a search term containing `.*` and `(a+)+` is matched literally and returns promptly.
+- [x] 4.1 Add `server/src/test/users-ordering.test.ts`: default ordering is last name, first name, `_id`; ascending status order is `active, inactive, blocked` and descending reverses it; `lastLoginAt` nulls appear last ascending **and** last descending; Cyrillic surnames order by alphabet and the identical request returns the identical sequence twice.
+- [x] 4.2 Add a stable-pagination test: seed a set whose members share last name and first name, page through the whole set at page size 20, and assert the union equals the seeded set with no duplicate and no omission.
+- [x] 4.3 Add `server/src/test/users-search.test.ts`: `anna smith` matches first name `Anna` + last name `Smith`; `smith anna` matches the same record; `марія` matches `Марія`; an email substring matches; `+380501234567` is found by `+38 (050) 123-45-67`, `050 123 45 67`, and `0501234567`; a search term containing `.*` and `(a+)+` is matched literally and returns promptly.
 
 **Depends on:** Stage 3
 
