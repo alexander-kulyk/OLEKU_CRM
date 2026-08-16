@@ -8,7 +8,8 @@ import {
   type UserAttributes,
 } from './user.model.ts'
 import { foldUserText } from './user-normalization.ts'
-import type { UserListQuery } from './user.schema.ts'
+import { normalizeUserPatch, type UserNormalizationSource } from './user-normalization.ts'
+import type { UserListQuery, UserPatch } from './user.schema.ts'
 
 const REGEXP_SPECIAL_CHARACTERS = /[.*+?^${}()|[\]\\]/g
 
@@ -210,4 +211,88 @@ export async function getUser(userId: string): Promise<UserDto> {
   }
 
   return toUserDto(user)
+}
+
+interface DuplicateKeyError {
+  code: number
+  keyPattern?: Record<string, number>
+}
+
+function isEmailDuplicateKey(error: unknown): error is DuplicateKeyError {
+  if (typeof error !== 'object' || error === null) return false
+
+  const candidate = error as DuplicateKeyError
+  return (
+    candidate.code === 11000 && candidate.keyPattern?.emailNormalized === 1
+  )
+}
+
+async function translateEmailDuplicate(
+  error: unknown,
+  emailNormalized: string,
+): Promise<never> {
+  if (!isEmailDuplicateKey(error)) throw error
+
+  const owner = await UserModel.findOne({ emailNormalized })
+    .select('archivedAt')
+    .lean<Pick<UserAttributes, 'archivedAt'> | null>()
+    .exec()
+  const code =
+    owner?.archivedAt == null
+      ? 'EMAIL_ALREADY_EXISTS'
+      : 'EMAIL_TAKEN_BY_ARCHIVED_USER'
+
+  throw new HttpError(code, 'That email address is already in use.', 'email')
+}
+
+export async function updateUser(
+  userId: string,
+  patch: UserPatch,
+): Promise<UserDto> {
+  const current = await UserModel.findOne({ _id: userId })
+    .select(
+      'firstName lastName email phone phoneExtension address status lastLoginAt',
+    )
+    .lean<UserNormalizationSource | null>()
+    .exec()
+
+  if (current === null) {
+    throw new HttpError('NOT_FOUND', 'User not found.')
+  }
+
+  const { version, ...mutablePatch } = patch
+  const normalized = normalizeUserPatch(mutablePatch, current)
+
+  let updated: LeanDetailUser | null
+  try {
+    updated = await UserModel.findOneAndUpdate(
+      { _id: userId, archivedAt: null, version },
+      { $set: normalized, $inc: { version: 1 } },
+      { new: true },
+    )
+      .select(
+        'firstName lastName email phone phoneExtension address status lastLoginAt archivedAt createdAt updatedAt version',
+      )
+      .lean<LeanDetailUser | null>()
+      .exec()
+  } catch (error) {
+    return translateEmailDuplicate(error, normalized.emailNormalized)
+  }
+
+  if (updated !== null) return toUserDto(updated)
+
+  const stored = await UserModel.findOne({ _id: userId })
+    .select('archivedAt')
+    .lean<Pick<UserAttributes, 'archivedAt'> | null>()
+    .exec()
+
+  if (stored === null) throw new HttpError('NOT_FOUND', 'User not found.')
+  if (stored.archivedAt !== null) {
+    throw new HttpError('USER_ARCHIVED', 'Archived users cannot be updated.')
+  }
+
+  throw new HttpError(
+    'USER_VERSION_CONFLICT',
+    'The user was changed by another request.',
+  )
 }

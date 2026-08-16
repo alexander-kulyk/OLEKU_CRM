@@ -23,9 +23,15 @@ export function validate<T>(schema: z.ZodType<T>, data: unknown): T {
     const hasOnlyUnrecognizedKeys = issues.every(
       (issue) => issue.code === 'unrecognized_keys',
     )
+    const hasNoChangesIssue =
+      issues.length === 1 &&
+      issues[0].code === 'custom' &&
+      issues[0].params?.errorCode === 'NO_CHANGES_SUBMITTED'
     const code = hasOnlyUnrecognizedKeys
       ? 'UNKNOWN_FIELD'
-      : 'VALIDATION_ERROR'
+      : hasNoChangesIssue
+        ? 'NO_CHANGES_SUBMITTED'
+        : 'VALIDATION_ERROR'
     const unrecognizedKeys = hasOnlyUnrecognizedKeys
       ? issues.flatMap((issue) =>
           issue.code === 'unrecognized_keys' ? issue.keys : [],
