@@ -17,6 +17,8 @@ the `.ts` extension** (see `src/app.ts`).
 
 - The Mongo URI comes from `DB_HOST`, not `MONGO_URI`. It is required — the process throws
   at startup when it is missing.
+- `DEFAULT_PHONE_REGION` is required and must be a supported two-letter country code (for
+  example, `UA`) used to parse phone numbers supplied in national format.
 - The catch-all 404 and the error handler stay last in `app.ts`; mount new routers above them.
 - Validate request input with zod at the route boundary and return the shared error envelope
   so the client can render the message.

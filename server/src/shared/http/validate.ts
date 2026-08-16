@@ -19,7 +19,29 @@ export function validate<T>(schema: z.ZodType<T>, data: unknown): T {
   const result = schema.safeParse(data)
 
   if (!result.success) {
-    throw new HttpError('VALIDATION_ERROR', z.prettifyError(result.error))
+    const { issues } = result.error
+    const hasOnlyUnrecognizedKeys = issues.every(
+      (issue) => issue.code === 'unrecognized_keys',
+    )
+    const code = hasOnlyUnrecognizedKeys
+      ? 'UNKNOWN_FIELD'
+      : 'VALIDATION_ERROR'
+    const unrecognizedKeys = hasOnlyUnrecognizedKeys
+      ? issues.flatMap((issue) =>
+          issue.code === 'unrecognized_keys' ? issue.keys : [],
+        )
+      : []
+    const field = hasOnlyUnrecognizedKeys
+      ? unrecognizedKeys.length === 1
+        ? unrecognizedKeys[0]
+        : undefined
+      : issues.length === 1 &&
+          issues[0].path.length === 1 &&
+          typeof issues[0].path[0] === 'string'
+        ? issues[0].path[0]
+        : undefined
+
+    throw new HttpError(code, z.prettifyError(result.error), field)
   }
 
   return result.data

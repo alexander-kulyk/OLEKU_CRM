@@ -26,6 +26,7 @@ export async function startTestEnvironment(): Promise<TestEnvironment> {
   const mongoUri = mongoServer.getUri()
 
   process.env.DB_HOST = mongoUri
+  process.env.DEFAULT_PHONE_REGION = 'UA'
 
   return { mongoServer, mongoUri }
 }

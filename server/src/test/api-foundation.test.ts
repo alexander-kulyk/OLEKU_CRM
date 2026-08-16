@@ -46,6 +46,16 @@ function closeServer(server: Server): Promise<void> {
   })
 }
 
+function assertExactErrorKeys(error: Record<string, unknown>): void {
+  const expectedKeys = ['code', 'message']
+
+  if ('field' in error) {
+    expectedKeys.push('field')
+  }
+
+  assert.deepEqual(Object.keys(error).sort(), expectedKeys.sort())
+}
+
 describe('shared HTTP terminal behavior', () => {
   let testEnvironment: TestEnvironment
 
@@ -81,7 +91,7 @@ describe('shared HTTP terminal behavior', () => {
     // same shared building blocks — validate(), HttpError, and both
     // terminal handlers — to exercise the validation, typed-failure, and
     // internal-failure paths that a real feature route will hit later.
-    const probeSchema = z.object({ value: z.string().min(1) })
+    const probeSchema = z.strictObject({ value: z.string().min(1) })
 
     const probeApp = express()
 
@@ -105,6 +115,14 @@ describe('shared HTTP terminal behavior', () => {
       throw new HttpError(
         'INVALID_PARTICIPANT',
         'That person cannot be assigned to this event.',
+      )
+    })
+
+    probeApp.get('/probe/field-error', () => {
+      throw new HttpError(
+        'EMAIL_ALREADY_EXISTS',
+        'That email address is already in use.',
+        'email',
       )
     })
 
@@ -144,7 +162,7 @@ describe('shared HTTP terminal behavior', () => {
 
     assert.equal(response.status, 404)
     assert.deepEqual(Object.keys(body), ['error'])
-    assert.deepEqual(Object.keys(body.error).sort(), ['code', 'message'])
+    assertExactErrorKeys(body.error)
     assert.equal(body.error.code, 'NOT_FOUND')
     assert.equal(typeof body.error.message, 'string')
     assert.ok(body.error.message.length > 0)
@@ -171,10 +189,73 @@ describe('shared HTTP terminal behavior', () => {
 
     assert.equal(response.status, 400)
     assert.deepEqual(Object.keys(body), ['error'])
-    assert.deepEqual(Object.keys(body.error).sort(), ['code', 'message'])
+    assertExactErrorKeys(body.error)
     assert.equal(body.error.code, 'VALIDATION_ERROR')
     assert.equal(typeof body.error.message, 'string')
     assert.ok(body.error.message.length > 0)
+  })
+
+  it('an unknown request member maps to UNKNOWN_FIELD', async () => {
+    const response = await fetch(
+      `${probeBaseUrl}/probe/validate?value=hello&unexpected=true`,
+    )
+    const body = (await response.json()) as {
+      error: Record<string, unknown> & { code: string }
+    }
+
+    assert.equal(response.status, 400)
+    assert.deepEqual(Object.keys(body), ['error'])
+    assertExactErrorKeys(body.error)
+    assert.equal(body.error.code, 'UNKNOWN_FIELD')
+    assert.equal(body.error.field, 'unexpected')
+  })
+
+  it('multiple unknown request members omit field', async () => {
+    const response = await fetch(
+      `${probeBaseUrl}/probe/validate?value=hello&first=true&second=true`,
+    )
+    const body = (await response.json()) as {
+      error: Record<string, unknown> & { code: string; field?: string }
+    }
+
+    assert.equal(response.status, 400)
+    assert.deepEqual(Object.keys(body), ['error'])
+    assertExactErrorKeys(body.error)
+    assert.equal(body.error.code, 'UNKNOWN_FIELD')
+    assert.equal(body.error.field, undefined)
+  })
+
+  it('a single-field validation failure identifies its field', async () => {
+    const response = await fetch(`${probeBaseUrl}/probe/validate?value=`)
+    const body = (await response.json()) as {
+      error: Record<string, unknown> & { code: string; field?: string }
+    }
+
+    assert.equal(response.status, 400)
+    assert.deepEqual(Object.keys(body), ['error'])
+    assertExactErrorKeys(body.error)
+    assert.equal(body.error.code, 'VALIDATION_ERROR')
+    assert.equal(body.error.field, 'value')
+  })
+
+  it('a typed field error includes only code, message, and field', async () => {
+    const response = await fetch(`${probeBaseUrl}/probe/field-error`)
+    const body = (await response.json()) as {
+      error: Record<string, unknown> & {
+        code: string
+        message: string
+        field?: string
+      }
+    }
+
+    assert.equal(response.status, 409)
+    assert.deepEqual(Object.keys(body), ['error'])
+    assertExactErrorKeys(body.error)
+    assert.deepEqual(body.error, {
+      code: 'EMAIL_ALREADY_EXISTS',
+      message: 'That email address is already in use.',
+      field: 'email',
+    })
   })
 
   it('a typed NOT_FOUND domain failure maps to its exact envelope and status', async () => {
@@ -212,7 +293,7 @@ describe('shared HTTP terminal behavior', () => {
 
     assert.equal(response.status, 500)
     assert.deepEqual(Object.keys(body), ['error'])
-    assert.deepEqual(Object.keys(body.error).sort(), ['code', 'message'])
+    assertExactErrorKeys(body.error)
     assert.equal(body.error.code, 'INTERNAL_ERROR')
     assert.notEqual(body.error.message, SYNTHETIC_RAW_MESSAGE)
 

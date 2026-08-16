@@ -284,11 +284,11 @@ describe('directory API (GET /api/contacts, GET /api/employees)', () => {
     assert.deepEqual(flags, [false, true])
   })
 
-  it('rejects canHostEvents on the contacts endpoint with VALIDATION_ERROR', async () => {
+  it('rejects canHostEvents on the contacts endpoint with UNKNOWN_FIELD', async () => {
     const { status, body } = await getJson(baseUrl, '/api/contacts?canHostEvents=true')
 
     assert.equal(status, 400)
-    assert.equal(body.error.code, 'VALIDATION_ERROR')
+    assert.equal(body.error.code, 'UNKNOWN_FIELD')
   })
 
   it('search matches a literal substring of either the first or last name, case-insensitively', async () => {
@@ -417,9 +417,9 @@ describe('directory API (GET /api/contacts, GET /api/employees)', () => {
     const limitResponse = await getJson(baseUrl, '/api/employees?limit=5')
 
     assert.equal(sizeResponse.status, 400)
-    assert.equal(sizeResponse.body.error.code, 'VALIDATION_ERROR')
+    assert.equal(sizeResponse.body.error.code, 'UNKNOWN_FIELD')
     assert.equal(limitResponse.status, 400)
-    assert.equal(limitResponse.body.error.code, 'VALIDATION_ERROR')
+    assert.equal(limitResponse.body.error.code, 'UNKNOWN_FIELD')
   })
 
   it('returns 404 NOT_FOUND for write attempts against a directory route and never mutates data', async () => {

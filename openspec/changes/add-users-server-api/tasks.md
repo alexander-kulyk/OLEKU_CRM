@@ -1,12 +1,12 @@
 ## 1. Shared contract foundation
 
-- [ ] 1.1 Add the phone parser: `pnpm --filter server add libphonenumber-js` from the repo root, and commit the updated `pnpm-lock.yaml`.
-- [ ] 1.2 Extend `server/src/shared/config/env.ts` with `defaultPhoneRegion` from the deployment-wide `DEFAULT_PHONE_REGION`, keeping it the only file that reads `process.env`. Document it in `server/.env.example` if one exists, otherwise in `server/CLAUDE.md`.
-- [ ] 1.3 Extend `server/src/shared/http/error-envelope.ts`: add `EMAIL_ALREADY_EXISTS`, `EMAIL_TAKEN_BY_ARCHIVED_USER`, `USER_VERSION_CONFLICT`, `USER_ARCHIVED`, `NO_CHANGES_SUBMITTED`, and `UNKNOWN_FIELD` to `ErrorCode` and to `STATUS_BY_CODE` (409 for the four conflicts, 400 for the two request-shape codes); add an optional `field` to `ErrorEnvelope['error']` and to the `HttpError` constructor, and emit it from `toEnvelope()` only when set.
-- [ ] 1.4 Confirm `server/src/shared/http/error-middleware.ts` propagates the new member — it maps `HttpError` through `toEnvelope()`, so verify rather than assume — and that a non-`HttpError` still collapses to `INTERNAL_ERROR` with no `field`.
-- [ ] 1.5 In `server/src/shared/http/validate.ts`, branch a Zod failure whose issues are exclusively `unrecognized_keys` to `UNKNOWN_FIELD`; every other failure stays `VALIDATION_ERROR`. Attach `field` when a single issue path identifies one field.
-- [ ] 1.6 In `server/src/app.ts`, configure `express.json({ limit: '1mb', type: ['application/json', 'application/merge-patch+json'] })`.
-- [ ] 1.7 Update `server/src/test/api-foundation.test.ts` where it asserts the exact key set of the response body and of `body.error` (around lines 146-147 and 173-174) so an optional `field` is permitted, while still proving no unexpected member appears.
+- [x] 1.1 Add the phone parser: `pnpm --filter server add libphonenumber-js` from the repo root, and commit the updated `pnpm-lock.yaml`.
+- [x] 1.2 Extend `server/src/shared/config/env.ts` with `defaultPhoneRegion` from the deployment-wide `DEFAULT_PHONE_REGION`, keeping it the only file that reads `process.env`. Document it in `server/.env.example` if one exists, otherwise in `server/CLAUDE.md`.
+- [x] 1.3 Extend `server/src/shared/http/error-envelope.ts`: add `EMAIL_ALREADY_EXISTS`, `EMAIL_TAKEN_BY_ARCHIVED_USER`, `USER_VERSION_CONFLICT`, `USER_ARCHIVED`, `NO_CHANGES_SUBMITTED`, and `UNKNOWN_FIELD` to `ErrorCode` and to `STATUS_BY_CODE` (409 for the four conflicts, 400 for the two request-shape codes); add an optional `field` to `ErrorEnvelope['error']` and to the `HttpError` constructor, and emit it from `toEnvelope()` only when set.
+- [x] 1.4 Confirm `server/src/shared/http/error-middleware.ts` propagates the new member — it maps `HttpError` through `toEnvelope()`, so verify rather than assume — and that a non-`HttpError` still collapses to `INTERNAL_ERROR` with no `field`.
+- [x] 1.5 In `server/src/shared/http/validate.ts`, branch a Zod failure whose issues are exclusively `unrecognized_keys` to `UNKNOWN_FIELD`; every other failure stays `VALIDATION_ERROR`. Attach `field` when a single issue path identifies one field.
+- [x] 1.6 In `server/src/app.ts`, configure `express.json({ limit: '1mb', type: ['application/json', 'application/merge-patch+json'] })`.
+- [x] 1.7 Update `server/src/test/api-foundation.test.ts` where it asserts the exact key set of the response body and of `body.error` (around lines 146-147 and 173-174) so an optional `field` is permitted, while still proving no unexpected member appears.
 
 **Validation:**
 

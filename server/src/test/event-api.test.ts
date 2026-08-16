@@ -790,7 +790,7 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
   })
 
   describe('route and query contract', () => {
-    it('rejects an undeclared events query key with VALIDATION_ERROR', async () => {
+    it('rejects an undeclared events query key with UNKNOWN_FIELD', async () => {
       const response = await getJson(
         baseUrl,
         `/api/events?${new URLSearchParams({
@@ -801,7 +801,7 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
       )
 
       assert.equal(response.status, 400)
-      assert.equal(response.body.error.code, 'VALIDATION_ERROR')
+      assert.equal(response.body.error.code, 'UNKNOWN_FIELD')
     })
 
     it('returns 404 NOT_FOUND for an undeclared method or path under /api/events', async () => {
@@ -822,7 +822,7 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
   })
 
   describe('event error responses stay within the shared envelope', () => {
-    it('every event error response is exactly { error: { code, message } } with no internal detail', async () => {
+    it('every event error response uses the exact shared envelope with no internal detail', async () => {
       const scenarios: Array<{ label: string; run: () => Promise<HttpResponse> }> = [
         { label: 'missing period boundary', run: () => getJson(baseUrl, '/api/events?from=2026-08-09T09:00:00Z') },
         {
@@ -848,9 +848,11 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
           `unexpected status for ${scenario.label}: ${response.status}`,
         )
         assert.deepEqual(Object.keys(response.body), ['error'], `unexpected top-level keys for ${scenario.label}`)
+        const expectedErrorKeys = ['code', 'message']
+        if ('field' in response.body.error) expectedErrorKeys.push('field')
         assert.deepEqual(
           Object.keys(response.body.error).sort(),
-          ['code', 'message'],
+          expectedErrorKeys.sort(),
           `unexpected error keys for ${scenario.label}`,
         )
         assert.equal(typeof response.body.error.message, 'string')
