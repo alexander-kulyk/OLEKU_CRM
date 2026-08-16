@@ -31,4 +31,13 @@ export const userListQuerySchema = z.strictObject({
   sort: z.enum(USER_SORTS).optional(),
 })
 
+const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i
+
+export const userIdParamsSchema = z.strictObject({
+  userId: z
+    .string()
+    .regex(OBJECT_ID_PATTERN, 'userId must be a valid identifier.'),
+})
+
 export type UserListQuery = z.infer<typeof userListQuerySchema>
+export type UserIdParams = z.infer<typeof userIdParamsSchema>

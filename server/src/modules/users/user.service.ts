@@ -1,6 +1,7 @@
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import type { QueryFilter, SortOrder } from 'mongoose'
 import { env } from '../../shared/config/env.ts'
+import { HttpError } from '../../shared/http/error-envelope.ts'
 import {
   UserModel,
   type UserAddress,
@@ -34,6 +35,14 @@ export interface UserListResult {
   }
 }
 
+export interface UserDto extends UserListItemDto {
+  phoneExtension: string | null
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+  version: number
+}
+
 type LeanListUser = Pick<
   UserAttributes,
   | 'firstName'
@@ -43,6 +52,22 @@ type LeanListUser = Pick<
   | 'address'
   | 'status'
   | 'lastLoginAt'
+> & { _id: unknown }
+
+type LeanDetailUser = Pick<
+  UserAttributes,
+  | 'firstName'
+  | 'lastName'
+  | 'email'
+  | 'phone'
+  | 'phoneExtension'
+  | 'address'
+  | 'status'
+  | 'lastLoginAt'
+  | 'archivedAt'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'version'
 > & { _id: unknown }
 
 function escapeForLiteralMatch(text: string): string {
@@ -125,6 +150,17 @@ function toUserListItem(user: LeanListUser): UserListItemDto {
   }
 }
 
+function toUserDto(user: LeanDetailUser): UserDto {
+  return {
+    ...toUserListItem(user),
+    phoneExtension: user.phoneExtension,
+    archivedAt: user.archivedAt?.toISOString() ?? null,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    version: user.version,
+  }
+}
+
 export async function listUsers(
   query: UserListQuery,
 ): Promise<UserListResult> {
@@ -159,4 +195,19 @@ export async function listUsers(
       totalPages: Math.ceil(total / query.pageSize),
     },
   }
+}
+
+export async function getUser(userId: string): Promise<UserDto> {
+  const user = await UserModel.findOne({ _id: userId })
+    .select(
+      'firstName lastName email phone phoneExtension address status lastLoginAt archivedAt createdAt updatedAt version',
+    )
+    .lean<LeanDetailUser | null>()
+    .exec()
+
+  if (user === null) {
+    throw new HttpError('NOT_FOUND', 'User not found.')
+  }
+
+  return toUserDto(user)
 }

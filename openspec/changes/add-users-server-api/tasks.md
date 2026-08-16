@@ -86,11 +86,11 @@
 
 ## 5. Detail endpoint
 
-- [ ] 5.1 Add the identifier schema rejecting a malformed user id at the boundary before any persistence lookup.
-- [ ] 5.2 Implement the detail service scoped to `{ _id }` with **no** `archivedAt` condition, so archived records are returned.
-- [ ] 5.3 Implement the detail mapper producing exactly the `UserDto` field set including `version`, `archivedAt`, `createdAt`, `updatedAt`, with dates as ISO 8601 UTC strings.
-- [ ] 5.4 Add `server/src/test/users-detail.test.ts`: an archived user returns 200 with a non-null `archivedAt`; an unknown well-formed id returns 404 `NOT_FOUND`; and a malformed id returns 400 with no persistence lookup.
-- [ ] 5.5 Add a response-whitelist test asserting that no list item and no detail body contains `emailNormalized`, any folded key, `statusRank`, `lastLoginRank`, a credential, a token, or persistence metadata — and that list items carry no `version`.
+- [x] 5.1 Add the identifier schema rejecting a malformed user id at the boundary before any persistence lookup.
+- [x] 5.2 Implement the detail service scoped to `{ _id }` with **no** `archivedAt` condition, so archived records are returned.
+- [x] 5.3 Implement the detail mapper producing exactly the `UserDto` field set including `version`, `archivedAt`, `createdAt`, `updatedAt`, with dates as ISO 8601 UTC strings.
+- [x] 5.4 Add `server/src/test/users-detail.test.ts`: an archived user returns 200 with a non-null `archivedAt`; an unknown well-formed id returns 404 `NOT_FOUND`; and a malformed id returns 400 with no persistence lookup.
+- [x] 5.5 Add a response-whitelist test asserting that no list item and no detail body contains `emailNormalized`, any folded key, `statusRank`, `lastLoginRank`, a credential, a token, or persistence metadata — and that list items carry no `version`.
 
 **Depends on:** Stage 3
 
