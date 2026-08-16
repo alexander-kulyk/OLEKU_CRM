@@ -5,6 +5,7 @@ import {
   stopTestEnvironment,
   type TestEnvironment,
 } from './support/test-environment.ts'
+import { DEFAULT_EVENT_COLOR } from '../modules/events/event-color.ts'
 
 // design.md D8: the exact index events.model.ts declares. Field order
 // matters for a compound index, so this compares a JSON-serialized form
@@ -61,6 +62,34 @@ describe('event model (events)', () => {
     assert.equal(event.updatedByUserId, null)
     assert.deepEqual(event.attendeeIds, [])
     assert.deepEqual(event.hostIds, [])
+  })
+
+  it('defaults color and normalizes a padded uppercase value at the persistence layer', () => {
+    const defaulted = new EventModel({
+      title: 'Default color',
+      startAt: new Date('2026-08-09T09:00:00Z'),
+      endAt: new Date('2026-08-09T10:00:00Z'),
+    })
+    const supplied = new EventModel({
+      title: 'Explicit color',
+      startAt: new Date('2026-08-09T09:00:00Z'),
+      endAt: new Date('2026-08-09T10:00:00Z'),
+      color: '  #7C3AED ',
+    })
+
+    assert.equal(defaulted.color, DEFAULT_EVENT_COLOR)
+    assert.equal(supplied.color, '#7c3aed')
+  })
+
+  it('rejects a color that is not a six-digit hex triplet via the match persistence backstop', async () => {
+    const event = new EventModel({
+      title: 'Bad color',
+      startAt: new Date('2026-08-09T09:00:00Z'),
+      endAt: new Date('2026-08-09T10:00:00Z'),
+      color: 'not-a-color',
+    })
+
+    await assert.rejects(() => event.validate())
   })
 
   it('trims a padded title at the persistence layer, independent of the schema layer', () => {

@@ -8,6 +8,11 @@ import type { EventRecord } from '../../../shared/api'
  * `extendedProps` rather than reshaped. `startAt`/`endAt` are passed through
  * as the zone-explicit ISO strings the server sends; FullCalendar parses
  * them itself.
+ *
+ * `color` drives both the block's fill and its border so a stored color
+ * renders as one solid block rather than a tinted default; FullCalendar's
+ * own white event text stays legible against every palette value
+ * (`event-dialog/config/event-colors.ts`).
  */
 export function mapEventRecordsToCalendarEvents(
   events: readonly EventRecord[],
@@ -17,6 +22,8 @@ export function mapEventRecordsToCalendarEvents(
     title: event.title,
     start: event.startAt,
     end: event.endAt,
+    backgroundColor: event.color,
+    borderColor: event.color,
     extendedProps: {
       attendees: event.attendees,
       hosts: event.hosts,

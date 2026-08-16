@@ -1,6 +1,7 @@
 import type { FC } from 'react'
 import type { FieldErrors, UseFormRegister } from 'react-hook-form'
 import type { EventDialogFormValues } from '../lib/event-dialog-schema'
+import { EventColorPicker } from './EventColorPicker'
 
 interface EventDetailsFieldsProps {
   readonly register: UseFormRegister<EventDialogFormValues>
@@ -15,10 +16,10 @@ const ERROR_CLASS_NAME = 'text-sm text-danger'
 
 /**
  * The event details section (specs/event-management/spec.md — "Event
- * detail fields"): name, date, start time, end time, all required. Native
- * `<input type="date">` / `<input type="time">` per design.md D5/D7 — no
- * date-picker library. Each field's message renders next to it, driven by
- * `errors` from the form's zod resolver.
+ * detail fields"): name, date, start time, end time, all required, plus the
+ * event's color. Native `<input type="date">` / `<input type="time">` per
+ * design.md D5/D7 — no date-picker library. Each field's message renders
+ * next to it, driven by `errors` from the form's zod resolver.
  */
 export const EventDetailsFields: FC<EventDetailsFieldsProps> = ({
   register,
@@ -94,6 +95,8 @@ export const EventDetailsFields: FC<EventDetailsFieldsProps> = ({
           {errors.endTime && <p className={ERROR_CLASS_NAME}>{errors.endTime.message}</p>}
         </div>
       </div>
+
+      <EventColorPicker register={register} errorMessage={errors.color?.message} />
     </fieldset>
   )
 }

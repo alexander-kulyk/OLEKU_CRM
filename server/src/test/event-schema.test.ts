@@ -6,6 +6,7 @@ import {
   eventPatchSchema,
   eventPeriodQuerySchema,
 } from '../modules/events/event.schema.ts'
+import { DEFAULT_EVENT_COLOR } from '../modules/events/event-color.ts'
 
 // event.schema.ts has no dependency on env.ts, Mongoose, or Express — it is
 // a pure Zod boundary layer (mirrors directory.schema.ts) — so, unlike
@@ -92,6 +93,24 @@ describe('event schemas (from/to, create, PATCH, id params)', () => {
       assert.deepEqual(result.hostIds, [])
     })
 
+    it('defaults an omitted color and normalizes a supplied one to trimmed lowercase hex', () => {
+      const defaulted = eventCreateSchema.parse(validBody)
+      const supplied = eventCreateSchema.parse({ ...validBody, color: '  #D97706 ' })
+
+      assert.equal(defaulted.color, DEFAULT_EVENT_COLOR)
+      assert.equal(supplied.color, '#d97706')
+    })
+
+    it('rejects a color that is not a six-digit hex triplet', () => {
+      for (const color of ['red', '#fff', '2563eb', '#2563e', '#2563ebb', '#12345g']) {
+        assert.equal(
+          eventCreateSchema.safeParse({ ...validBody, color }).success,
+          false,
+          `expected ${color} to be rejected`,
+        )
+      }
+    })
+
     it('preserves supplied participant arrays as-is, including duplicates (de-duplication is the service concern)', () => {
       const result = eventCreateSchema.parse({
         ...validBody,
@@ -141,7 +160,10 @@ describe('event schemas (from/to, create, PATCH, id params)', () => {
         somethingElse: 'unexpected',
       })
 
-      assert.deepEqual(Object.keys(result).sort(), ['attendeeIds', 'endAt', 'hostIds', 'startAt', 'title'])
+      assert.deepEqual(
+        Object.keys(result).sort(),
+        ['attendeeIds', 'color', 'endAt', 'hostIds', 'startAt', 'title'],
+      )
     })
   })
 
@@ -150,14 +172,23 @@ describe('event schemas (from/to, create, PATCH, id params)', () => {
       assert.equal(eventPatchSchema.safeParse({ title: 'New title' }).success, true)
     })
 
-    it('accepts any combination of the five editable fields', () => {
+    it('accepts any combination of the six editable fields', () => {
       const result = eventPatchSchema.safeParse({
         startAt: '2026-08-09T09:00:00Z',
         endAt: '2026-08-09T10:00:00Z',
+        color: '#059669',
         attendeeIds: [],
       })
 
       assert.equal(result.success, true)
+    })
+
+    it('accepts a color-only body, normalized, and rejects a malformed one', () => {
+      const result = eventPatchSchema.parse({ color: '#DC2626' })
+
+      assert.deepEqual(Object.keys(result), ['color'])
+      assert.equal(result.color, '#dc2626')
+      assert.equal(eventPatchSchema.safeParse({ color: 'blue' }).success, false)
     })
 
     it('rejects an empty body', () => {

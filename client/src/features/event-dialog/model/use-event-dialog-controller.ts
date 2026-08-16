@@ -140,6 +140,7 @@ export function useEventDialogController({ target }: UseEventDialogControllerPar
     const startAt = localDateTimeToIsoInstant(values.date, values.startTime)
     const endAt = localDateTimeToIsoInstant(values.date, values.endTime)
     const title = values.name.trim()
+    const color = values.color
 
     // ALWAYS sends the complete intended `attendeeIds`/`hostIds` —
     // including an explicitly empty array, and including whichever role
@@ -153,8 +154,8 @@ export function useEventDialogController({ target }: UseEventDialogControllerPar
 
     const succeeded = await mutation.run(() =>
       target.type === 'edit'
-        ? updateEvent(target.eventId, { title, startAt, endAt, attendeeIds, hostIds })
-        : createEvent({ title, startAt, endAt, attendeeIds, hostIds }),
+        ? updateEvent(target.eventId, { title, startAt, endAt, color, attendeeIds, hostIds })
+        : createEvent({ title, startAt, endAt, color, attendeeIds, hostIds }),
     )
 
     if (succeeded) {

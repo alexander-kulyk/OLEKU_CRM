@@ -2,6 +2,7 @@ import mongoose, { Types } from 'mongoose'
 import { HttpError } from '../../shared/http/error-envelope.ts'
 import { ContactModel } from '../directory/contact.model.ts'
 import { EmployeeModel } from '../directory/employee.model.ts'
+import { DEFAULT_EVENT_COLOR } from './event-color.ts'
 import { EventModel, type EventAttributes } from './event.model.ts'
 import type { CreateEventInput, EventPeriodQuery, PatchEventInput } from './event.schema.ts'
 
@@ -24,6 +25,8 @@ export interface EventPayload {
   title: string
   startAt: string
   endAt: string
+  /** Six-digit lowercase hex triplet — always present (see {@link toEventPayloads}). */
+  color: string
   attendees: ParticipantSummary[]
   hosts: ParticipantSummary[]
 }
@@ -39,6 +42,10 @@ type ParticipantRole = 'attendee' | 'host'
  */
 type EventLike = Pick<EventAttributes, 'title' | 'startAt' | 'endAt' | 'attendeeIds' | 'hostIds'> & {
   _id: unknown
+  // Optional here, unlike on `EventAttributes`: an event stored before the
+  // color field existed has no value on the document at all, and the
+  // model's `default` does not apply retroactively on read.
+  color?: string | null
 }
 
 /**
@@ -228,6 +235,9 @@ export async function toEventPayloads(events: readonly EventLike[]): Promise<Eve
     title: event.title,
     startAt: event.startAt.toISOString(),
     endAt: event.endAt.toISOString(),
+    // Events stored before the color field existed have none — every
+    // response still carries one, so no consumer has to handle its absence.
+    color: event.color ?? DEFAULT_EVENT_COLOR,
     attendees: resolveRole(event.attendeeIds, attendeeSummaries),
     hosts: resolveRole(event.hostIds, hostSummaries),
   }))
@@ -249,7 +259,7 @@ export async function listEventsByPeriod(period: EventPeriodQuery): Promise<Even
     startAt: { $lt: period.to },
     endAt: { $gt: period.from },
   })
-    .select('title startAt endAt attendeeIds hostIds')
+    .select('title startAt endAt color attendeeIds hostIds')
     .lean()
 
   return toEventPayloads(events)
@@ -276,6 +286,7 @@ export async function createEvent(input: CreateEventInput): Promise<EventPayload
     title: input.title,
     startAt: input.startAt,
     endAt: input.endAt,
+    color: input.color,
     attendeeIds: attendeeIds.map((id) => new Types.ObjectId(id)),
     hostIds: hostIds.map((id) => new Types.ObjectId(id)),
     createdByUserId: null,
@@ -339,6 +350,9 @@ export async function patchEvent(id: string, patch: PatchEventInput): Promise<Ev
   }
   if (patch.endAt !== undefined) {
     event.endAt = patch.endAt
+  }
+  if (patch.color !== undefined) {
+    event.color = patch.color
   }
   if (nextAttendeeIds !== undefined) {
     event.attendeeIds = nextAttendeeIds

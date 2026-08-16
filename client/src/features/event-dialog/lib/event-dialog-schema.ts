@@ -3,6 +3,7 @@ import type { DialogTarget } from '../../../shared/model'
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const TIME_PATTERN = /^\d{2}:\d{2}$/
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i
 
 function isValidCalendarDate(value: string): boolean {
   if (!DATE_PATTERN.test(value)) {
@@ -31,6 +32,13 @@ function isValidCalendarDate(value: string): boolean {
  * event-participants/spec.md — "A save transmits the complete intended
  * participant sets"; R-006). Neither array is itself a validation
  * constraint — attendees and hosts are optional.
+ *
+ * `color` is a real required field, but one the user can never blank: the
+ * color panel preselects a swatch on open (Create) or the event's stored
+ * color (Edit), and offers no "none" choice. The shape check below is
+ * therefore a guard on the wire contract — the API rejects anything that
+ * isn't a six-digit hex triplet — rather than a message a user is expected
+ * to see.
  */
 export const eventDialogFormSchema = z
   .object({
@@ -47,6 +55,7 @@ export const eventDialogFormSchema = z
       .string()
       .min(1, 'End time is required.')
       .regex(TIME_PATTERN, 'Enter a valid end time.'),
+    color: z.string().regex(HEX_COLOR_PATTERN, 'Choose an event color.'),
     attendeeIds: z.array(z.string()),
     hostIds: z.array(z.string()),
   })

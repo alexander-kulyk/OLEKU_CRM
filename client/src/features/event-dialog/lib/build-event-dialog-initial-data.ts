@@ -5,6 +5,7 @@ import {
   toLocalDateInputValue,
   toLocalTimeInputValue,
 } from '../../../shared/lib'
+import { DEFAULT_EVENT_COLOR } from '../config/event-colors'
 import type { EventDialogFormValues, OpenDialogTarget } from './event-dialog-schema'
 
 export interface EventDialogInitialData {
@@ -34,6 +35,7 @@ const BLANK_FORM_VALUES: EventDialogFormValues = {
   date: '',
   startTime: '',
   endTime: '',
+  color: DEFAULT_EVENT_COLOR,
   attendeeIds: [],
   hostIds: [],
 }
@@ -71,6 +73,9 @@ export function buildEventDialogInitialData(
           ? toLocalTimeInputValue(target.prefill.startTime)
           : '',
         endTime: '',
+        // Create opens on a preselected swatch rather than no color at all,
+        // so a user who never touches the panel still saves a valid event.
+        color: DEFAULT_EVENT_COLOR,
         attendeeIds: [],
         hostIds: [],
       },
@@ -100,6 +105,7 @@ export function buildEventDialogInitialData(
       date: isoInstantToLocalDateInputValue(sourceEvent.startAt),
       startTime: isoInstantToLocalTimeInputValue(sourceEvent.startAt),
       endTime: isoInstantToLocalTimeInputValue(sourceEvent.endAt),
+      color: sourceEvent.color,
       attendeeIds: toParticipantIds(sourceEvent.attendees),
       hostIds: toParticipantIds(sourceEvent.hosts),
     },

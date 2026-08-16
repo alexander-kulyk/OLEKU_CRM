@@ -2,7 +2,7 @@ import type { FC } from 'react'
 
 /**
  * Placeholder for the `/users` destination (specs/app-navigation/spec.md —
- * "Analytics and Users are reserved placeholders"). Issues no API request.
+ * "Users is a reserved placeholder"). Issues no API request.
  */
 export const UsersPage: FC = () => {
   return (

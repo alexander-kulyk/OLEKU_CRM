@@ -7,6 +7,9 @@ import {
   stopTestEnvironment,
   type TestEnvironment,
 } from './support/test-environment.ts'
+// Safe to import statically alongside the dynamic imports below: this
+// module is a pure constants file with no path to env.ts (design.md D10).
+import { DEFAULT_EVENT_COLOR } from '../modules/events/event-color.ts'
 
 // This file proves the event-api.spec.md requirements Stage 5 already
 // covered at the service layer (event-service.test.ts, event-schema.test.ts)
@@ -340,7 +343,7 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
   })
 
   describe('returned events use the domain payload', () => {
-    it('exposes exactly id, title, startAt, endAt, attendees, hosts with resolved participants', async () => {
+    it('exposes exactly id, title, startAt, endAt, color, attendees, hosts with resolved participants', async () => {
       const attendee = await insertContact({ firstName: 'Ada', lastName: 'Lovelace' })
       const host = await insertEmployee({ firstName: 'Grace', lastName: 'Hopper', canHostEvents: true })
 
@@ -350,7 +353,10 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
         hostIds: [String(host._id)],
       })
 
-      assert.deepEqual(Object.keys(created).sort(), ['attendees', 'endAt', 'hosts', 'id', 'startAt', 'title'])
+      assert.deepEqual(
+        Object.keys(created).sort(),
+        ['attendees', 'color', 'endAt', 'hosts', 'id', 'startAt', 'title'],
+      )
       assert.equal(typeof created.id, 'string')
       assert.match(created.startAt, /Z$/)
       assert.match(created.endAt, /Z$/)
@@ -388,6 +394,51 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
 
       assert.deepEqual(created.attendees, [])
       assert.deepEqual(created.hosts, [])
+    })
+  })
+
+  describe('events carry a color', () => {
+    it('round-trips a supplied color through create, the period read, and PATCH', async () => {
+      const created = await createViaApi({ title: 'Colored event', color: '#D97706' })
+      assert.equal(created.color, '#d97706')
+
+      const read = await getJson(
+        baseUrl,
+        `/api/events?${new URLSearchParams({
+          from: '2026-08-09T08:00:00Z',
+          to: '2026-08-09T11:00:00Z',
+        })}`,
+      )
+      const listed = read.body.events.find((event: { id: string }) => event.id === created.id)
+      assert.equal(listed?.color, '#d97706')
+
+      const patched = await patchJson(baseUrl, `/api/events/${created.id}`, { color: '#059669' })
+      assert.equal(patched.status, 200)
+      assert.equal(patched.body.color, '#059669')
+      assert.equal(patched.body.title, 'Colored event')
+    })
+
+    it('defaults the color when create omits it', async () => {
+      const created = await createViaApi()
+
+      assert.equal(created.color, DEFAULT_EVENT_COLOR)
+    })
+
+    it('rejects a malformed color on create and on PATCH with VALIDATION_ERROR, changing nothing', async () => {
+      const onCreate = await postJson(baseUrl, '/api/events', validCreateBody({ color: 'red' }))
+
+      assert.equal(onCreate.status, 400)
+      assert.equal(onCreate.body.error.code, 'VALIDATION_ERROR')
+      assert.equal(await EventModel.countDocuments(), 0)
+
+      const created = await createViaApi({ color: '#2563eb' })
+      const onPatch = await patchJson(baseUrl, `/api/events/${created.id}`, { color: '#12345g' })
+
+      assert.equal(onPatch.status, 400)
+      assert.equal(onPatch.body.error.code, 'VALIDATION_ERROR')
+
+      const stored = await EventModel.findById(created.id).lean()
+      assert.equal(stored?.color, '#2563eb')
     })
   })
 
@@ -646,7 +697,7 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
       assert.equal(response.status, 201)
       assert.deepEqual(
         Object.keys(response.body).sort(),
-        ['attendees', 'endAt', 'hosts', 'id', 'startAt', 'title'],
+        ['attendees', 'color', 'endAt', 'hosts', 'id', 'startAt', 'title'],
       )
 
       const stored = await EventModel.findById(response.body.id).lean()
@@ -665,7 +716,7 @@ describe('event API (GET/POST/PATCH/DELETE /api/events)', () => {
       assert.equal(response.status, 200)
       assert.deepEqual(
         Object.keys(response.body).sort(),
-        ['attendees', 'endAt', 'hosts', 'id', 'startAt', 'title'],
+        ['attendees', 'color', 'endAt', 'hosts', 'id', 'startAt', 'title'],
       )
 
       const stored = await EventModel.findById(created.id).lean()

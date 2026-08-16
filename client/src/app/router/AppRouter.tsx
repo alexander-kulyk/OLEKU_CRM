@@ -4,7 +4,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 // components
 import { Layout } from '../layout';
 import {
-  AnalyticsPage,
   NotFoundPage,
   EventsPage,
   UsersPage,
@@ -19,7 +18,6 @@ export const AppRouter: React.FC = () => (
       <Route element={<Layout />}>
         <Route index element={<Navigate to='/events' replace />} />
         <Route path='events' element={<EventsPage />} />
-        <Route path='analytics' element={<AnalyticsPage />} />
         <Route path='users' element={<UsersPage />} />
         <Route path='*' element={<NotFoundPage />} />
       </Route>

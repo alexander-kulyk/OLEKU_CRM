@@ -25,6 +25,12 @@ export interface EventRecord {
   readonly startAt: string
   /** Zone-explicit ISO instant. */
   readonly endAt: string
+  /**
+   * The event's display color as a six-digit lowercase hex triplet, e.g.
+   * `#2563eb`. Always present: the server substitutes its default for an
+   * event stored before the field existed.
+   */
+  readonly color: string
   readonly attendees: readonly EventParticipant[]
   readonly hosts: readonly EventParticipant[]
 }
@@ -41,12 +47,14 @@ export interface EventPeriod {
 
 /**
  * Body for `POST /api/events`. Omitted participant arrays default to `[]`
- * server-side.
+ * server-side, and an omitted `color` to the server's default color.
  */
 export interface CreateEventInput {
   readonly title: string
   readonly startAt: string
   readonly endAt: string
+  /** Six-digit hex triplet; rejected with VALIDATION_ERROR in any other shape. */
+  readonly color?: string
   readonly attendeeIds?: readonly string[]
   readonly hostIds?: readonly string[]
 }
@@ -64,6 +72,7 @@ export interface UpdateEventInput {
   readonly title?: string
   readonly startAt?: string
   readonly endAt?: string
+  readonly color?: string
   readonly attendeeIds?: readonly string[]
   readonly hostIds?: readonly string[]
 }

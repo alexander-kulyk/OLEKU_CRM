@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DEFAULT_EVENT_COLOR, EVENT_COLOR_PATTERN } from './event-color.ts'
 
 /**
  * Every instant accepted by the event API — `from`/`to` on the calendar
@@ -20,6 +21,18 @@ const instantField = z.iso.datetime({ offset: true }).transform((value) => new D
  * is caught here rather than reaching the service.
  */
 const titleField = z.string().trim().min(1, 'Title is required.')
+
+/**
+ * The event's display color: a six-digit hex triplet (event-color.ts).
+ * Normalized before the shape check runs — surrounding whitespace is
+ * trimmed and `#2563EB` is stored as `#2563eb` — so a single stored
+ * spelling comes back for a given color no matter how it was submitted.
+ */
+const colorField = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(EVENT_COLOR_PATTERN, 'color must be a six-digit hex value such as #2563eb.')
 
 /**
  * Bare participant id arrays. De-duplication and existence/role/eligibility
@@ -65,7 +78,8 @@ export const eventPeriodQuerySchema = z
  * created"). Omitted `attendeeIds` / `hostIds` default to an empty array
  * rather than staying `undefined` — create treats every submitted id as
  * newly assigned (design.md D6), so there is no "leave unchanged" state to
- * preserve the way PATCH has.
+ * preserve the way PATCH has. An omitted `color` likewise defaults here, so
+ * every created event carries one.
  *
  * A plain `z.object`, not `z.strictObject`: any other supplied key —
  * including a forged `createdByUserId` / `updatedByUserId` — is silently
@@ -76,6 +90,7 @@ export const eventCreateSchema = z.object({
   title: titleField,
   startAt: instantField,
   endAt: instantField,
+  color: colorField.default(DEFAULT_EVENT_COLOR),
   attendeeIds: participantIdsField.default([]),
   hostIds: participantIdsField.default([]),
 })
@@ -86,7 +101,7 @@ export const eventCreateSchema = z.object({
  * any non-empty subset. An omitted `attendeeIds` / `hostIds` stays
  * `undefined` — distinct from a supplied empty array — so event.service.ts
  * can tell "leave this role unchanged" apart from "clear this role". The
- * `refine` rejects a body that supplies none of the five editable fields
+ * `refine` rejects a body that supplies none of the six editable fields
  * ("Empty update body").
  */
 export const eventPatchSchema = z
@@ -94,11 +109,13 @@ export const eventPatchSchema = z
     title: titleField.optional(),
     startAt: instantField.optional(),
     endAt: instantField.optional(),
+    color: colorField.optional(),
     attendeeIds: participantIdsField.optional(),
     hostIds: participantIdsField.optional(),
   })
   .refine((patch) => Object.keys(patch).length > 0, {
-    message: 'At least one of title, startAt, endAt, attendeeIds, or hostIds must be supplied.',
+    message:
+      'At least one of title, startAt, endAt, color, attendeeIds, or hostIds must be supplied.',
   })
 
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i

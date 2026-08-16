@@ -1,4 +1,5 @@
 import mongoose, { Schema, Types } from 'mongoose'
+import { DEFAULT_EVENT_COLOR, EVENT_COLOR_PATTERN } from './event-color.ts'
 
 /**
  * A calendar event. `events` is a domain collection distinct from `users`
@@ -13,6 +14,7 @@ export interface EventAttributes {
   title: string
   startAt: Date
   endAt: Date
+  color: string
   attendeeIds: Types.ObjectId[]
   hostIds: Types.ObjectId[]
   createdByUserId: Types.ObjectId | null
@@ -24,6 +26,21 @@ const eventSchema = new Schema<EventAttributes>(
     title: { type: String, required: true, trim: true },
     startAt: { type: Date, required: true },
     endAt: { type: Date, required: true },
+    // The event's display color (event-color.ts). `default` covers a write
+    // path that omits it; `match` is the persistence backstop for the hex
+    // shape that event.schema.ts enforces at the boundary, in the same
+    // defense-in-depth spirit as the span hook below. Documents written
+    // before this field existed carry no value at all — event.service.ts
+    // substitutes the default when mapping them to a payload, since a
+    // Mongoose `default` only ever applies to newly created documents.
+    color: {
+      type: String,
+      required: true,
+      default: DEFAULT_EVENT_COLOR,
+      trim: true,
+      lowercase: true,
+      match: EVENT_COLOR_PATTERN,
+    },
     attendeeIds: { type: [Schema.Types.ObjectId], default: [] },
     hostIds: { type: [Schema.Types.ObjectId], default: [] },
     // Nullable and server-controlled (specs/event-api/spec.md, "Audit

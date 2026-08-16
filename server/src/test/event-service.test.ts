@@ -5,6 +5,7 @@ import {
   stopTestEnvironment,
   type TestEnvironment,
 } from './support/test-environment.ts'
+import { DEFAULT_EVENT_COLOR } from '../modules/events/event-color.ts'
 
 const START = '2026-08-09T09:00:00Z'
 const END = '2026-08-09T10:00:00Z'
@@ -139,7 +140,10 @@ describe('event service (createEvent, patchEvent, toEventPayloads)', () => {
         }),
       )
 
-      assert.deepEqual(Object.keys(created).sort(), ['attendees', 'endAt', 'hosts', 'id', 'startAt', 'title'])
+      assert.deepEqual(
+        Object.keys(created).sort(),
+        ['attendees', 'color', 'endAt', 'hosts', 'id', 'startAt', 'title'],
+      )
       assert.equal(typeof created.id, 'string')
       assert.equal(created.startAt, new Date(START).toISOString())
       assert.equal(created.endAt, new Date(END).toISOString())
@@ -165,6 +169,67 @@ describe('event service (createEvent, patchEvent, toEventPayloads)', () => {
       const created = await createEvent(buildCreateInput({ title: '  Padded via pipeline  ' }))
 
       assert.equal(created.title, 'Padded via pipeline')
+    })
+  })
+
+  describe('events carry a color', () => {
+    it('persists a supplied color and returns it, normalized, on create', async () => {
+      const created = await createEvent(buildCreateInput({ color: '#D97706' }))
+
+      assert.equal(created.color, '#d97706')
+
+      const stored = await EventModel.findById(created.id).lean()
+      assert.equal(stored?.color, '#d97706')
+    })
+
+    it('falls back to the default color when create supplies none', async () => {
+      const created = await createEvent(buildCreateInput())
+
+      assert.equal(created.color, DEFAULT_EVENT_COLOR)
+
+      const stored = await EventModel.findById(created.id).lean()
+      assert.equal(stored?.color, DEFAULT_EVENT_COLOR)
+    })
+
+    it('updates only the color on a color-only patch', async () => {
+      const created = await createEvent(buildCreateInput({ title: 'Keeps its title' }))
+
+      const updated = await patchEvent(created.id, buildPatchInput({ color: '#059669' }))
+
+      assert.equal(updated.color, '#059669')
+      assert.equal(updated.title, 'Keeps its title')
+      assert.equal(updated.startAt, created.startAt)
+      assert.equal(updated.endAt, created.endAt)
+    })
+
+    it('leaves a stored color untouched when the patch omits it', async () => {
+      const created = await createEvent(buildCreateInput({ color: '#7c3aed' }))
+
+      const updated = await patchEvent(created.id, buildPatchInput({ title: 'Retitled' }))
+
+      assert.equal(updated.color, '#7c3aed')
+    })
+
+    it('reports the default color for an event stored before the field existed', async () => {
+      // Inserted through the raw driver so no Mongoose default is applied —
+      // exactly the shape of a document written by the previous version.
+      const insert = await EventModel.collection.insertOne({
+        title: 'Legacy event',
+        startAt: new Date(START),
+        endAt: new Date(END),
+        attendeeIds: [],
+        hostIds: [],
+        createdByUserId: null,
+        updatedByUserId: null,
+      })
+
+      const stored = await EventModel.findById(insert.insertedId).lean()
+      assert.ok(stored, 'expected the legacy event to be readable')
+      assert.equal(stored.color, undefined)
+
+      const [payload] = await toEventPayloads([stored])
+
+      assert.equal(payload?.color, DEFAULT_EVENT_COLOR)
     })
   })
 
@@ -497,7 +562,10 @@ describe('event service (createEvent, patchEvent, toEventPayloads)', () => {
 
       const created = await createEvent(forgedInput)
 
-      assert.deepEqual(Object.keys(created).sort(), ['attendees', 'endAt', 'hosts', 'id', 'startAt', 'title'])
+      assert.deepEqual(
+        Object.keys(created).sort(),
+        ['attendees', 'color', 'endAt', 'hosts', 'id', 'startAt', 'title'],
+      )
 
       const stored = await EventModel.findById(created.id).lean()
       assert.equal(stored?.createdByUserId, null)
