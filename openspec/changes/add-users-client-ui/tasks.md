@@ -44,11 +44,11 @@
 
 **Depends on:** Stage 1.
 
-- [ ] 3.1 Create `client/src/features/user-management` with `api`, `model`, `lib`, `config`, and `ui` segments plus a minimal public `index.ts`; keep all Users DTOs and domain types inside this feature.
-- [ ] 3.2 Define typed list/detail/pagination/query/patch/runtime-context contracts that match `add-users-server-api`, including list/detail version separation and supported status/sort/page-size unions.
-- [ ] 3.3 Implement pure parse, canonicalize, serialize, wire-query, and page-repair functions for `page`, `pageSize`, `search`, statuses, and sort, with deterministic defaults/order and one-character search suppression.
-- [ ] 3.4 Implement feature-local Users API functions for list/detail/PATCH/archive through the shared Axios client, including read cancellation signals, merge-patch content type, and explicit typed response shapes.
-- [ ] 3.5 Add pure/API tests for invalid URL repair, stable serialization, Back/Forward-ready state restoration, supported query combinations, `totalPages` zero/out-of-range repair, DTO/version separation, request shapes, and cancellation/error propagation.
+- [x] 3.1 Create `client/src/features/user-management` with `api`, `model`, `lib`, `config`, and `ui` segments plus a minimal public `index.ts`; keep all Users DTOs and domain types inside this feature.
+- [x] 3.2 Define typed list/detail/pagination/query/patch/runtime-context contracts that match `add-users-server-api`, including list/detail version separation and supported status/sort/page-size unions.
+- [x] 3.3 Implement pure parse, canonicalize, serialize, wire-query, and page-repair functions for `page`, `pageSize`, `search`, statuses, and sort, with deterministic defaults/order and one-character search suppression.
+- [x] 3.4 Implement feature-local Users API functions for list/detail/PATCH/archive through the shared Axios client, including read cancellation signals, merge-patch content type, and explicit typed response shapes.
+- [x] 3.5 Add pure/API tests for invalid URL repair, stable serialization, Back/Forward-ready state restoration, supported query combinations, `totalPages` zero/out-of-range repair, DTO/version separation, request shapes, and cancellation/error propagation.
 
 **Do not:** Create a Users store, add a remote cache, copy Users types into `shared`, or call a deployed endpoint in tests.
 
