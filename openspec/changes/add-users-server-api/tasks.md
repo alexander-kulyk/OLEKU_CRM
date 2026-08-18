@@ -174,10 +174,10 @@
 
 ## 9. `DB_HOST` index provisioning and deployment precondition
 
-- [ ] 9.1 Require `DB_HOST` to identify the target database, connect through the existing server configuration, and record only a credential-free target identifier (host and database name); never print or persist the URI credentials.
-- [ ] 9.2 Inspect that target's `users` collection and confirm no duplicate `emailNormalized` values exist. Do not assume the collection is empty.
-- [ ] 9.3 Create the unique normalized-email index and the sort/search indexes as an explicit, verified step, and confirm each finished building.
-- [ ] 9.4 Record the confirmed deployment-wide `DEFAULT_PHONE_REGION` alongside the credential-free `DB_HOST` target identifier for each deployment environment.
+- [x] 9.1 Require `DB_HOST` to identify the target database, connect through the existing server configuration, and record only a credential-free target identifier (host and database name); never print or persist the URI credentials.
+- [x] 9.2 Inspect that target's `users` collection and confirm no duplicate `emailNormalized` values exist. Do not assume the collection is empty.
+- [x] 9.3 Create the unique normalized-email index and the sort/search indexes as an explicit, verified step, and confirm each finished building.
+- [x] 9.4 Record the confirmed deployment-wide `DEFAULT_PHONE_REGION` alongside the credential-free `DB_HOST` target identifier for each deployment environment.
 
 **Depends on:** Stage 8
 

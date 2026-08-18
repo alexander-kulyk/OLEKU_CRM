@@ -24,3 +24,15 @@ the `.ts` extension** (see `src/app.ts`).
   so the client can render the message.
 - `contacts` (clients) and `employees` (staff) remain the CRM people directory. `users`
   holds account identity plus the account profile used to administer access.
+
+## Deployment environments
+
+Confirmed configuration per environment (per `openspec/changes/add-users-server-api`
+Stage 9). `DB_HOST` values are never recorded here — identifiers only.
+
+| Environment | `DB_HOST` target (credential-free) | `DEFAULT_PHONE_REGION` |
+| --- | --- | --- |
+| local dev | MongoDB Atlas, database `OLEKU_CRM` | `UA` |
+
+The `users` unique-email and sort/search indexes (`user.model.ts`) are provisioned on
+this target as of 2026-08-18.

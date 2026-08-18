@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mongodb": {
+      "command": "node",
+      "args": ["server/scripts/mcp-mongodb-bridge.ts"]
+    }
+  }
+}
