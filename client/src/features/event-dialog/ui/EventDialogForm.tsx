@@ -95,6 +95,7 @@ export const EventDialogForm: React.FC<IEventDialogFormProps> = ({ target }) => 
           isConfirming={values.isPending}
           onConfirm={handlers.handleDeleteConfirmed}
           onCancel={handlers.handleDeleteCancelled}
+          onDismiss={handlers.handleDeleteCancelled}
         />
       )}
 
@@ -106,6 +107,7 @@ export const EventDialogForm: React.FC<IEventDialogFormProps> = ({ target }) => 
           cancelLabel='Continue editing'
           onConfirm={handlers.handleDiscardConfirmed}
           onCancel={handlers.handleContinueEditing}
+          onDismiss={handlers.handleContinueEditing}
         />
       )}
     </>

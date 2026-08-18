@@ -22,10 +22,10 @@
 
 **Depends on:** Stage 1.
 
-- [ ] 2.1 Add a project-agnostic modal stack provider/registry in the shared UI boundary and mount it once from the application layer so dialogs register stable tokens and only the topmost dialog owns dismissal and focus containment.
-- [ ] 2.2 Refactor `Modal` to preserve its public composition contract while adding initial focus, Tab/Shift+Tab containment, topmost Escape/outside handling, and logical focus restoration.
-- [ ] 2.3 Refactor `ConfirmDialog` to compose the modal primitive, use unique ARIA IDs, expose explicit dismissal, and preserve its data-driven tone presentation and pending-action guard.
-- [ ] 2.4 Add single- and stacked-dialog tests covering initial focus, focus cycling, topmost Escape, outside interaction, busy confirmation, unique labelling, and focus restoration; include a regression render of the existing Event dialog consumer.
+- [x] 2.1 Add a project-agnostic modal stack provider/registry in the shared UI boundary and mount it once from the application layer so dialogs register stable tokens and only the topmost dialog owns dismissal and focus containment.
+- [x] 2.2 Refactor `Modal` to preserve its public composition contract while adding initial focus, Tab/Shift+Tab containment, topmost Escape/outside handling, and logical focus restoration.
+- [x] 2.3 Refactor `ConfirmDialog` to compose the modal primitive, use unique ARIA IDs, expose explicit dismissal, and preserve its data-driven tone presentation and pending-action guard.
+- [x] 2.4 Add single- and stacked-dialog tests covering initial focus, focus cycling, topmost Escape, outside interaction, busy confirmation, unique labelling, and focus restoration; include a regression render of the existing Event dialog consumer.
 
 **Do not:** Put Users-specific state or copy into shared UI, add one document key listener per stacked dialog, or change Event dialog behavior without matching regression evidence.
 

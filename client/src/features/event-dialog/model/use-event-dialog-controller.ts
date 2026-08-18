@@ -107,15 +107,13 @@ export function useEventDialogController({ target }: UseEventDialogControllerPar
   const handleCloseAttempt = useCallback(() => {
     if (mutation.isPending || isDeleteConfirmOpen || isDiscardConfirmOpen) {
       // A submission is in flight, or a `ConfirmDialog` (delete/discard) is
-      // stacked on top — `Modal`'s Escape listener stays mounted for the
-      // whole lifetime of this form and isn't blocked by DOM stacking the
-      // way the overlay click and close-icon routes are, so it must be
-      // guarded explicitly here. While a confirmation is up, Escape is a
-      // no-op: `ConfirmDialog` deliberately doesn't wire Escape to either of
-      // its own buttons (see its doc comment), so falling through here would
-      // introduce a third implicit close outcome — or, if a dirty edit's
-      // delete confirmation is open, stack the discard confirmation on top
-      // of it as well.
+      // stacked on top. The shared modal stack already keeps this dialog's
+      // own `Modal` from reacting to Escape or an outside click while a
+      // confirmation is topmost (shared/context/ModalStack), but this
+      // function is also wired directly to the close icon and Cancel
+      // button, which the stack does not gate — so it must still be guarded
+      // explicitly here, or falling through would introduce a third
+      // implicit close outcome underneath the open confirmation.
       return
     }
 
