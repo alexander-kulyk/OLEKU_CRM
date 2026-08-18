@@ -1,7 +1,9 @@
 export { httpClient } from './http-client'
 export {
+  CANCELLED_ERROR_CODE,
   getApiErrorCode,
   isApiError,
+  isCancelledError,
   toApiError,
   TRANSPORT_ERROR_CODE,
 } from './error'

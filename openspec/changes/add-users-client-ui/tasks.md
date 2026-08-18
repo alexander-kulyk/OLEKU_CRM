@@ -1,9 +1,9 @@
 ## 1. Test Harness and Shared Error Contract
 
-- [ ] 1.1 Add `libphonenumber-js` to the client with `pnpm --filter client add libphonenumber-js`, then add Vitest, jsdom, React Testing Library, user-event, and jest-dom with `pnpm --filter client add -D vitest jsdom @testing-library/react @testing-library/user-event @testing-library/jest-dom`; preserve the pnpm lockfile changes.
-- [ ] 1.2 Add deterministic `test` and `test:watch` client scripts, a jsdom Vitest configuration/setup, and a root `test:client` forwarding script without replacing the existing build scripts.
-- [ ] 1.3 Extend the shared API error model and normalizer additively with Users server codes, optional `field`, HTTP `status`, and a distinct internal cancellation marker/helper; preserve all existing directory/event codes, including concurrent `EVENT_VERSION_CONFLICT` if present, and continue to ignore server message text for generic copy.
-- [ ] 1.4 Add shared error tests for recognized and unknown envelopes, field/status preservation, cancellation, transport failures, and regression behavior for existing event/directory error mapping.
+- [x] 1.1 Add `libphonenumber-js` to the client with `pnpm --filter client add libphonenumber-js`, then add Vitest, jsdom, React Testing Library, user-event, and jest-dom with `pnpm --filter client add -D vitest jsdom @testing-library/react @testing-library/user-event @testing-library/jest-dom`; preserve the pnpm lockfile changes.
+- [x] 1.2 Add deterministic `test` and `test:watch` client scripts, a jsdom Vitest configuration/setup, and a root `test:client` forwarding script without replacing the existing build scripts.
+- [x] 1.3 Extend the shared API error model and normalizer additively with Users server codes, optional `field`, HTTP `status`, and a distinct internal cancellation marker/helper; preserve all existing directory/event codes, including concurrent `EVENT_VERSION_CONFLICT` if present, and continue to ignore server message text for generic copy.
+- [x] 1.4 Add shared error tests for recognized and unknown envelopes, field/status preservation, cancellation, transport failures, and regression behavior for existing event/directory error mapping.
 
 **Do not:** Remove existing error codes, expose raw server messages as UI copy, add a remote-data library, or edit generated/package-manager output by hand.
 
