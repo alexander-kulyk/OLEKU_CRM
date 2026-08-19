@@ -65,11 +65,11 @@
 
 **Depends on:** Stages 2 and 3.
 
-- [ ] 4.1 Implement a feature-local list reducer/hook that derives the query from Router state, applies approximately 300 ms search debounce, aborts superseded reads, guards every completion by canonical request key, and preserves the URL for Retry.
-- [ ] 4.2 Implement URL-driven search, multi-status, sortable headers, page-size, and pagination controls with replace-versus-push history semantics and a Clear filters action that preserves page size/sort while resetting search/status/page.
-- [ ] 4.3 Implement declarative loading, error, one-character guidance, true-empty, no-results, and loaded-result components with live/status semantics and mutation-triggered refetch support.
-- [ ] 4.4 Implement the native Users table using typed column/status configuration, the eight required columns, address/phone/Last Login formatting, explicit status text, record-specific Edit labels, and horizontally accessible responsive presentation.
-- [ ] 4.5 Add routed list tests with fake timers and controlled promises for debounce, latest-request-wins, canceled-request silence, Retry, URL repair/history, filter/search distinctions, server-only dataset handling, pagination repair, semantic sorting state, missing values, and all collection states.
+- [x] 4.1 Implement a feature-local list reducer/hook that derives the query from Router state, applies approximately 300 ms search debounce, aborts superseded reads, guards every completion by canonical request key, and preserves the URL for Retry.
+- [x] 4.2 Implement URL-driven search, multi-status, sortable headers, page-size, and pagination controls with replace-versus-push history semantics and a Clear filters action that preserves page size/sort while resetting search/status/page.
+- [x] 4.3 Implement declarative loading, error, one-character guidance, true-empty, no-results, and loaded-result components with live/status semantics and mutation-triggered refetch support.
+- [x] 4.4 Implement the native Users table using typed column/status configuration, the eight required columns, address/phone/Last Login formatting, explicit status text, record-specific Edit labels, and horizontally accessible responsive presentation.
+- [x] 4.5 Add routed list tests with fake timers and controlled promises for debounce, latest-request-wins, canceled-request silence, Retry, URL repair/history, filter/search distinctions, server-only dataset handling, pagination repair, semantic sorting state, missing values, and all collection states.
 
 **Do not:** Mirror URL query values in component state, mutate the returned page locally, load an unbounded collection, store search/results in browser storage, or communicate status by color alone.
 
