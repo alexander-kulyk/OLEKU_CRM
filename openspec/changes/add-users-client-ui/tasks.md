@@ -86,10 +86,10 @@
 
 **Depends on:** Stages 2 and 3.
 
-- [ ] 5.1 Implement a flat React Hook Form model and Zod schema for names, email, phone, extension, address members, and status, including trim/NFC/control-character/length rules and region-aware `libphonenumber-js` validation.
-- [ ] 5.2 Implement pure detail-to-form, normalization, normalized-dirty, date/address/phone display, and merge-patch builders; distinguish omitted values from `null`, partial address updates from full removal, and clean Save from a version-only request.
-- [ ] 5.3 Implement detail-before-edit loading and the Edit User form with all editable/read-only fields, associated field errors, idle-only Save availability, a synchronous duplicate-submit guard, and non-error `No changes to save` feedback.
-- [ ] 5.4 Add tests for Unicode names, invalid control characters, email limits, international/regional phone cases, missing phone region, flat address errors, normalized equality, per-field clears, full-address removal, immutable-field omission, version inclusion, clean Save, and duplicate activation.
+- [x] 5.1 Implement a flat React Hook Form model and Zod schema for names, email, phone, extension, address members, and status, including trim/NFC/control-character/length rules and region-aware `libphonenumber-js` validation.
+- [x] 5.2 Implement pure detail-to-form, normalization, normalized-dirty, date/address/phone display, and merge-patch builders; distinguish omitted values from `null`, partial address updates from full removal, and clean Save from a version-only request.
+- [x] 5.3 Implement detail-before-edit loading and the Edit User form with all editable/read-only fields, associated field errors, idle-only Save availability, a synchronous duplicate-submit guard, and non-error `No changes to save` feedback.
+- [x] 5.4 Add tests for Unicode names, invalid control characters, email limits, international/regional phone cases, missing phone region, flat address errors, normalized equality, per-field clears, full-address removal, immutable-field omission, version inclusion, clean Save, and duplicate activation.
 
 **Do not:** Hydrate edits from list rows, use raw RHF `isDirty` as the domain dirty decision, send empty strings to clear nullable values, handwrite phone regex parsing, or permit browser timezone/region inference.
 
