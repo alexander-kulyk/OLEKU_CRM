@@ -27,4 +27,6 @@ export const USER_FORM_COPY = {
   save: 'Save changes',
   saving: 'Saving changes…',
   noChangesToSave: 'No changes to save.',
+  archiveButton: 'Archive user',
+  reloadLatest: 'Reload latest',
 } as const

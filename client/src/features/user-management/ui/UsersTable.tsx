@@ -12,6 +12,8 @@ export interface UsersTableProps {
   readonly sortField: UserSortField
   readonly sortDirection: UserSortDirection
   readonly onSort: (field: UserSortField) => void
+  /** Opens the detail-before-edit flow for a row (task 6.1). */
+  readonly onEditUser: (userId: string) => void
 }
 
 const HEADER_CELL_CLASS_NAME =
@@ -73,7 +75,7 @@ const UsersTableHeaderCell: FC<UsersTableHeaderCellProps> = ({ column, sortField
  * value, so the complete value is always present, not hidden behind an
  * ellipsis.
  */
-export const UsersTable: FC<UsersTableProps> = ({ items, sortField, sortDirection, onSort }) => (
+export const UsersTable: FC<UsersTableProps> = ({ items, sortField, sortDirection, onSort, onEditUser }) => (
   <div role='region' aria-label='Users' tabIndex={0} className='overflow-x-auto rounded-md border border-line'>
     <table className='w-full min-w-[960px] border-collapse'>
       <thead className='bg-surface-muted'>
@@ -91,7 +93,7 @@ export const UsersTable: FC<UsersTableProps> = ({ items, sortField, sortDirectio
       </thead>
       <tbody>
         {items.map((user) => (
-          <UsersTableRow key={user.id} user={user} />
+          <UsersTableRow key={user.id} user={user} onEdit={onEditUser} />
         ))}
       </tbody>
     </table>

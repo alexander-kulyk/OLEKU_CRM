@@ -6,6 +6,7 @@ import { useEditUserForm } from '../model/use-edit-user-form'
 import type { UserDetailDto } from '../model/user-dto'
 import type { UserPatchPayload } from '../model/user-patch'
 import { EditUserDialogActions } from './EditUserDialogActions'
+import type { EditUserArchiveAction, EditUserFieldErrorProp, EditUserOperationError } from './EditUserDialog'
 import { UserAddressFields } from './UserAddressFields'
 import { UserContactFields } from './UserContactFields'
 import { UserNameFields } from './UserNameFields'
@@ -18,6 +19,10 @@ export interface EditUserFormProps {
   readonly isSaving: boolean
   readonly onSave: (userId: string, patch: UserPatchPayload) => void
   readonly onRequestClose: (isDirty: boolean) => void
+  readonly operationError: EditUserOperationError | null
+  readonly fieldError: EditUserFieldErrorProp | null
+  readonly onReloadLatestRequested: (isDirty: boolean) => void
+  readonly archive: EditUserArchiveAction
   readonly titleId: string
 }
 
@@ -41,15 +46,24 @@ export const EditUserForm: FC<EditUserFormProps> = ({
   isSaving,
   onSave,
   onRequestClose,
+  operationError,
+  fieldError,
+  onReloadLatestRequested,
+  archive,
   titleId,
 }) => {
-  const { register, control, errors, statusMessage, submitForm, handleRequestClose } = useEditUserForm({
+  const { register, control, errors, statusMessage, submitForm, handleRequestClose, checkIsDirty } = useEditUserForm({
     detail,
     defaultPhoneRegion,
     isSaving,
     onSave,
     onRequestClose,
+    fieldError,
   })
+
+  const handleReloadLatest = (): void => {
+    onReloadLatestRequested(checkIsDirty())
+  }
 
   const dialogTitle = `${USER_FORM_COPY.dialogTitlePrefix} ${detail.firstName} ${detail.lastName}`
 
@@ -81,7 +95,14 @@ export const EditUserForm: FC<EditUserFormProps> = ({
         <UserAddressFields register={register} errors={errors} isDisabled={isSaving} />
         <UserStatusField control={control} isDisabled={isSaving} />
 
-        <EditUserDialogActions isSaving={isSaving} statusMessage={statusMessage} onCancel={handleRequestClose} />
+        <EditUserDialogActions
+          isSaving={isSaving}
+          statusMessage={statusMessage}
+          operationError={operationError}
+          onReloadLatest={handleReloadLatest}
+          archive={archive}
+          onCancel={handleRequestClose}
+        />
       </form>
     </Modal>
   )

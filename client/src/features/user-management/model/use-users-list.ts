@@ -44,8 +44,19 @@ export interface UseUsersListResult {
  * effect immediately — only typing should feel delayed
  * (specs/user-management/spec.md — "Search is debounced and
  * latest-request-wins"; task 4.5 "filter/search distinctions").
+ *
+ * `externalRefetchToken` (task 6.1/6.4) lets a caller outside this hook —
+ * `UserManagement`'s controller — request a fresh read of the SAME
+ * canonical query after a successful update/archive
+ * (specs/user-management/spec.md — "Save outcomes preserve server truth and
+ * unsaved work": "refetch the current canonical collection instead of
+ * mutating a paginated row locally"). It reuses this hook's own
+ * cancellation/stale-guard/page-repair machinery rather than duplicating
+ * it in a second fetch path; defaults to `0` so every existing call site
+ * (Stage 4's own tests, `UsersList` with no caller-driven refetch) is
+ * unaffected.
  */
-export function useUsersList(): UseUsersListResult {
+export function useUsersList(externalRefetchToken = 0): UseUsersListResult {
   const { query, controls, replaceQuery } = useUsersListQuery()
 
   const [debouncedSearch, setDebouncedSearch] = useState(query.search)
@@ -129,8 +140,11 @@ export function useUsersList(): UseUsersListResult {
     // `requestKey` fully determines the outgoing request (readUsersList
     // rebuilds the same wire params from `requestQuery` internally), so it
     // is the correct effect dependency — see module docs above.
+    // `externalRefetchToken` deliberately has no bearing on `requestKey`
+    // itself (the query has not changed) but must still retrigger this
+    // effect, exactly like `retryToken`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestKey, retryToken])
+  }, [requestKey, retryToken, externalRefetchToken])
 
   // Out-of-range page repair (specs/user-management/spec.md — "Out-of-range
   // pages are repaired"): only fires once per response, and only when the

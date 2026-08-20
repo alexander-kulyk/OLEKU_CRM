@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import { useForm } from 'react-hook-form'
-import type { Control, FieldErrors, UseFormRegister } from 'react-hook-form'
+import type { Control, FieldErrors, FieldPath, UseFormRegister } from 'react-hook-form'
 import { createZodResolver } from '../../../shared/lib'
 import { USER_FORM_COPY } from '../config/user-form-copy'
 import { buildUserPatch } from '../lib/user-form/build-user-patch'
@@ -12,6 +12,12 @@ import { createUserFormSchema } from '../lib/user-form/user-form-schema'
 import type { UserFormValues } from '../lib/user-form/user-form-schema'
 import type { UserDetailDto } from './user-dto'
 import type { UserPatchPayload } from './user-patch'
+
+/** A server field-level failure to attach inline (Stage 6's recovery matrix, design.md D7). */
+export interface EditUserFieldError {
+  readonly field: string
+  readonly message: string
+}
 
 export interface UseEditUserFormParams {
   readonly detail: UserDetailDto
@@ -28,6 +34,13 @@ export interface UseEditUserFormParams {
    * stage only ever reports the fact, never the confirmation UI itself.
    */
   readonly onRequestClose: (isDirty: boolean) => void
+  /**
+   * A failed Save's field-level server error, attached inline via
+   * `setError` whenever a new one arrives (e.g. a duplicate-email
+   * conflict). React-hook-form's own revalidation naturally supersedes a
+   * stale one on the next edit — this hook never clears it itself.
+   */
+  readonly fieldError?: EditUserFieldError | null
 }
 
 export interface UseEditUserFormResult {
@@ -38,6 +51,8 @@ export interface UseEditUserFormResult {
   readonly statusMessage: string | null
   readonly submitForm: (event?: React.BaseSyntheticEvent) => Promise<void>
   readonly handleRequestClose: () => void
+  /** The form's live normalized-dirty state, computed on demand (e.g. before a guarded "Reload latest"). */
+  readonly checkIsDirty: () => boolean
 }
 
 /**
@@ -62,6 +77,7 @@ export function useEditUserForm({
   isSaving,
   onSave,
   onRequestClose,
+  fieldError,
 }: UseEditUserFormParams): UseEditUserFormResult {
   const [initialFormValues] = useState(() => mapUserDetailToFormValues(detail))
   const [originalNormalizedValues] = useState(() => normalizeUserFormValues(initialFormValues, defaultPhoneRegion))
@@ -73,6 +89,7 @@ export function useEditUserForm({
     handleSubmit,
     control,
     getValues,
+    setError,
     formState: { errors },
   } = useForm<UserFormValues>({
     resolver: createZodResolver(schema),
@@ -144,12 +161,32 @@ export function useEditUserForm({
     [handleValidSubmit],
   )
 
-  const handleRequestClose = useCallback(() => {
+  const checkIsDirty = useCallback((): boolean => {
     const currentNormalizedValues = normalizeUserFormValues(getValues(), defaultPhoneRegion)
-    const isDirty = isUserFormNormalizedDirty(currentNormalizedValues, originalNormalizedValues)
 
-    onRequestClose(isDirty)
-  }, [getValues, defaultPhoneRegion, originalNormalizedValues, onRequestClose])
+    return isUserFormNormalizedDirty(currentNormalizedValues, originalNormalizedValues)
+  }, [getValues, defaultPhoneRegion, originalNormalizedValues])
 
-  return { register, control, errors, statusMessage, submitForm, handleRequestClose }
+  const handleRequestClose = useCallback(() => {
+    onRequestClose(checkIsDirty())
+  }, [checkIsDirty, onRequestClose])
+
+  // Attaches a failed Save's field-level server error (e.g. a duplicate
+  // email) the same way a client-side validation failure would — through
+  // react-hook-form's own `errors`, so `UserContactFields`'s existing
+  // `error={errors.email?.message}` wiring needs no change at all. Runs
+  // per new `fieldError` instance (a fresh object each failed attempt, even
+  // for a repeated identical failure) rather than per field/message text,
+  // so re-submitting into the same conflict re-shows the message even if
+  // react-hook-form's own revalidation had already cleared it.
+  useEffect(() => {
+    if (!fieldError) {
+      return
+    }
+
+    setError(fieldError.field as FieldPath<UserFormValues>, { type: 'server', message: fieldError.message })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldError, setError])
+
+  return { register, control, errors, statusMessage, submitForm, handleRequestClose, checkIsDirty }
 }

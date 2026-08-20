@@ -106,12 +106,12 @@
 
 **Depends on:** Stages 2, 4, and 5.
 
-- [ ] 6.1 Implement the explicit edit/dialog reducer and focused async hooks for detail loading, save, reload-latest, archive confirmation, discard confirmation, archived acknowledgement, and refetch completion without boolean-per-dialog state.
-- [ ] 6.2 Implement the typed Users operation/code recovery matrix for inline email errors, generic validation, version conflict, archived/not-found records, self/last-administrator archive conflicts, 401 delegation, 403/429/5xx/transport failures, and silent cancellation.
-- [ ] 6.3 Implement successful PATCH behavior that closes the editor and refetches the canonical query, plus version-conflict Reload latest guarded by discard confirmation and `USER_ARCHIVED` acknowledgement followed by close/refetch.
-- [ ] 6.4 Implement Archive confirmation and DELETE without version, idempotent 204 success handling, duplicate-submit prevention, canonical refetch/page repair, and operation-level conflict preservation.
-- [ ] 6.5 Implement the optional runtime-context injection seam; disable Archive when operator identity is missing or matches the target, preserve dirty forms across 401/403 paths, expose unavailable timezone/region/recovery behavior, and never synthesize those values from the browser.
-- [ ] 6.6 Add interaction tests for success/refetch/filter disappearance, every recovery-matrix branch, dirty close/outside/Escape, Continue editing, Discard changes, stacked archive/discard dialogs, self-archive presentation, missing runtime context, and unsaved-value preservation.
+- [x] 6.1 Implement the explicit edit/dialog reducer and focused async hooks for detail loading, save, reload-latest, archive confirmation, discard confirmation, archived acknowledgement, and refetch completion without boolean-per-dialog state.
+- [x] 6.2 Implement the typed Users operation/code recovery matrix for inline email errors, generic validation, version conflict, archived/not-found records, self/last-administrator archive conflicts, 401 delegation, 403/429/5xx/transport failures, and silent cancellation.
+- [x] 6.3 Implement successful PATCH behavior that closes the editor and refetches the canonical query, plus version-conflict Reload latest guarded by discard confirmation and `USER_ARCHIVED` acknowledgement followed by close/refetch.
+- [x] 6.4 Implement Archive confirmation and DELETE without version, idempotent 204 success handling, duplicate-submit prevention, canonical refetch/page repair, and operation-level conflict preservation.
+- [x] 6.5 Implement the optional runtime-context injection seam; disable Archive when operator identity is missing or matches the target, preserve dirty forms across 401/403 paths, expose unavailable timezone/region/recovery behavior, and never synthesize those values from the browser.
+- [x] 6.6 Add interaction tests for success/refetch/filter disappearance, every recovery-matrix branch, dirty close/outside/Escape, Continue editing, Discard changes, stacked archive/discard dialogs, self-archive presentation, missing runtime context, and unsaved-value preservation.
 
 **Do not:** Automatically retry conflicted writes, overwrite newer server data, close/reset dirty forms on recoverable failures, claim archive success on conflicts, or enable archive without operator identity.
 
