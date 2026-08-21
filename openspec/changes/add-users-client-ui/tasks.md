@@ -153,9 +153,9 @@
 
 **Depends on:** Stage 7 and the implementation of `add-users-server-api`.
 
-- [ ] 8.1 Confirm every `add-users-server-api` implementation task is complete, its server build passes, and its list/detail/patch/archive DTOs, content type, error field/codes, and CORS/base-URL environment still match this client's adapter.
-- [ ] 8.2 Run the full client suite/build and strict OpenSpec validation, then review the resulting diff to confirm only intended client, package/lockfile, root script, and `add-users-client-ui` task-status changes are present.
-- [ ] 8.3 Against an approved local/non-production environment, smoke-test initial list, search/filter/sort/pagination, detail-before-edit, clean Save, successful update, duplicate email, version conflict, archive, pagination repair, UTC Last Login, and configured operator/phone-region behavior.
+- [x] 8.1 Confirm every `add-users-server-api` implementation task is complete, its server build passes, and its list/detail/patch/archive DTOs, content type, error field/codes, and CORS/base-URL environment still match this client's adapter.
+- [x] 8.2 Run the full client suite/build and strict OpenSpec validation, then review the resulting diff to confirm only intended client, package/lockfile, root script, and `add-users-client-ui` task-status changes are present.
+- [x] 8.3 Against an approved local/non-production environment, smoke-test initial list, search/filter/sort/pagination, detail-before-edit, clean Save, successful update, duplicate email, version conflict, archive, pagination repair, UTC Last Login, and configured operator/phone-region behavior.
 - [ ] 8.4 Record any unavailable auth/configuration integration as an explicit blocker and leave the corresponding task unchecked; do not mark full BR-USERS client compliance until current-operator, 401 recovery, and the deployment default phone region are supplied and exercised.
 
 **Do not:** Probe the deployed Azure API, use production credentials/data, or mark integration complete from mocks alone.
