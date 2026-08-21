@@ -16,7 +16,7 @@ export interface UsersTableRowProps {
 
 const STATUS_BADGE_CLASS_NAME = 'inline-flex items-center rounded-full px-sm py-xs text-label'
 const MUTED_ROW_CLASS_NAME = 'text-ink-secondary'
-const CELL_CLASS_NAME = 'whitespace-nowrap px-md py-sm text-body'
+const CELL_CLASS_NAME = 'whitespace-nowrap px-md py-md text-body'
 
 /**
  * One Users table row (task 4.4). Inactive/blocked rows use a muted row
@@ -38,7 +38,12 @@ export const UsersTableRow: FC<UsersTableRowProps> = ({ user, onEdit }) => {
   }
 
   return (
-    <tr className={classNames('border-b border-line last:border-b-0', presentation.isRowMuted && MUTED_ROW_CLASS_NAME)}>
+    <tr
+      className={classNames(
+        'border-b border-line transition-colors last:border-b-0 hover:bg-surface-muted',
+        presentation.isRowMuted && MUTED_ROW_CLASS_NAME,
+      )}
+    >
       <td className={CELL_CLASS_NAME}>{user.firstName}</td>
       <td className={CELL_CLASS_NAME}>{user.lastName}</td>
       <td className={CELL_CLASS_NAME}>{user.email}</td>

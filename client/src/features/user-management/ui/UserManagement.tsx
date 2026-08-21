@@ -50,7 +50,7 @@ export const UserManagement: FC<UserManagementProps> = ({ runtimeContext }) => {
   const confirmationActions = buildConfirmationActions(handlers)
 
   return (
-    <div className='flex flex-col gap-lg'>
+    <div className='flex flex-col gap-lg p-xl'>
       {values.notice && <UserManagementNotice message={values.notice} onDismiss={handlers.onDismissNotice} />}
 
       <UsersList onEditUser={handlers.onEditUser} refetchSignal={values.refetchSignal} />

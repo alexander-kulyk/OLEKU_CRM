@@ -128,11 +128,11 @@
 
 **Depends on:** Stages 4 and 6.
 
-- [ ] 7.1 Replace the `/users` placeholder with a thin `UsersPage` composition of the feature public API while preserving the existing route, shell, active navigation, basename handling, and optional runtime-context prop seam.
-- [ ] 7.2 Complete Tailwind v4 presentation using existing CSS-first tokens, keeping status, focus, error, loading, and narrow-table behavior accessible without adding `tailwind.config.*` or styled-components.
-- [ ] 7.3 Audit FSD import direction/public APIs, one-component-per-file structure, declarative JSX, local state ownership, typed config-driven variants, descriptive types/handlers, and the 250-line file cap; split any oversized concern before completion.
-- [ ] 7.4 Add route-level tests for direct/query URLs, navigation activation, no full reload, keyboard-only list/edit/archive flow, live feedback, record-specific labels, full-value access, and absence of Users search/result persistence.
-- [ ] 7.5 Manually review `/users` at 320 px, 768 px, and 1440 px viewport widths with long names, addresses, and empty values; verify no overlap, horizontal access, visible focus, complete-value access, and reachable Actions.
+- [x] 7.1 Replace the `/users` placeholder with a thin `UsersPage` composition of the feature public API while preserving the existing route, shell, active navigation, basename handling, and optional runtime-context prop seam.
+- [x] 7.2 Complete Tailwind v4 presentation using existing CSS-first tokens, keeping status, focus, error, loading, and narrow-table behavior accessible without adding `tailwind.config.*` or styled-components.
+- [x] 7.3 Audit FSD import direction/public APIs, one-component-per-file structure, declarative JSX, local state ownership, typed config-driven variants, descriptive types/handlers, and the 250-line file cap; split any oversized concern before completion.
+- [x] 7.4 Add route-level tests for direct/query URLs, navigation activation, no full reload, keyboard-only list/edit/archive flow, live feedback, record-specific labels, full-value access, and absence of Users search/result persistence.
+- [x] 7.5 Manually review `/users` at 320 px, 768 px, and 1440 px viewport widths with long names, addresses, and empty values; verify no overlap, horizontal access, visible focus, complete-value access, and reachable Actions.
 
 **Do not:** Import feature internals from the page, add Users business code to `shared`, reuse the calendar Zustand store, add a second store, or hand-edit generated build output.
 

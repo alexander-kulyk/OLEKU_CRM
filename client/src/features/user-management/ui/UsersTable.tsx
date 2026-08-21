@@ -17,7 +17,7 @@ export interface UsersTableProps {
 }
 
 const HEADER_CELL_CLASS_NAME =
-  'whitespace-nowrap px-md py-sm text-left text-eyebrow text-ink-secondary uppercase'
+  'whitespace-nowrap px-md py-md text-left text-eyebrow text-ink-secondary uppercase'
 const SORT_BUTTON_CLASS_NAME =
   'inline-flex items-center gap-xs text-eyebrow text-ink-secondary uppercase hover:text-ink'
 
